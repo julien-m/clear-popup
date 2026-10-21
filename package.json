@@ -1,0 +1,16 @@
+{
+  "name": "clear-popup",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Blocage local de pop-up et overlays, sans collecte",
+  "license": "MIT",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "playwright test",
+    "build": "node scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1"
+  }
+}
