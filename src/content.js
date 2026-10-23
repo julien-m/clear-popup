@@ -1,24 +1,60 @@
 (() => {
   'use strict';
   let config = {enabled: true, basic: true, advanced: true, exceptions: [], rules: {}};
-  let active = false, configReady = false, picking = false, rememberPick = false;
+  let active = false, configReady = globalThis.clearPopupAdvancedStart === true, picking = false, rememberPick = false;
   let lastInteraction = -Infinity, pendingPopups = 0, countTimer = 0;
   let host = location.hostname;
   if (!host) { try { host = new URL(location.ancestorOrigins[0]).hostname; } catch { /* opaque frame */ } }
   const removed = new Map();
   const undone = new WeakSet();
   const locks = new Map();
-  let toolbar, shadow, outlineStyle, highlighted;
+  let toolbar, shadow, outlineStyle, highlighted, popupNotice;
+  let firstPopupNotified = false;
   const send = message => chrome.runtime.sendMessage(message).catch(() => ({ok: false}));
   const enabled = () => config.enabled && !config.exceptions.includes(host);
   function mainConfig() { window.dispatchEvent(new CustomEvent('clear-popup:config', {detail: {enabled: enabled() && config.basic}})); }
   window.addEventListener('clear-popup:ready', mainConfig);
   window.addEventListener('clear-popup:blocked', () => {
     if (!enabled() || !config.basic) return;
+    firstPopup();
     pendingPopups = Math.min(100, pendingPopups + 1);
     if (!countTimer) countTimer = setTimeout(() => { send({type: 'count', popups: pendingPopups}); pendingPopups = 0; countTimer = 0; }, 150);
   });
-  function withinOurs(node) { return node === toolbar || toolbar?.contains(node); }
+  function withinOurs(node) { return node === toolbar || toolbar?.contains(node) || node === popupNotice || popupNotice?.contains(node); }
+  function dismissPopupNotice() { popupNotice?.remove(); popupNotice = null; }
+  function firstPopup(source = {}) {
+    if (firstPopupNotified || !enabled() || !config.basic) return;
+    firstPopupNotified = true;
+    if (window !== top) { send({type: 'popup-notice'}); return; }
+    const blockedHost = source.host || host;
+    popupNotice = document.createElement('div'); popupNotice.setAttribute('data-clear-popup-notice', '');
+    const root = popupNotice.attachShadow({mode: 'closed'});
+    const style = document.createElement('style');
+    style.textContent = ':host{all:initial;position:fixed!important;top:12px!important;right:16px!important;z-index:2147483647!important;width:min(340px,calc(100vw - 32px))!important;font:14px system-ui!important;color:#173d34!important}section{background:#fff;border:1px solid #bed4c8;border-radius:12px;box-shadow:0 8px 32px #0003;padding:16px}strong{display:block;font-size:15px}p{font-size:13px;line-height:1.5;margin:8px 0;overflow-wrap:anywhere}small{display:block;font-size:11px;color:#647a70;line-height:1.5;margin:8px 0 12px}div{display:flex;gap:8px;flex-wrap:wrap}button{font:600 12px system-ui;border:1px solid #bfd2c7;border-radius:7px;padding:9px 11px;cursor:pointer;background:#fff;color:#175c4b}button:first-child{background:#175c4b;color:#fff}button:focus-visible{outline:3px solid #69ac90;outline-offset:2px}button:disabled{opacity:.6;cursor:wait}';
+    const box = document.createElement('section'); box.setAttribute('aria-label', 'Pop-up bloqué par Clear Pop Up'); box.setAttribute('role', 'region');
+    const heading = document.createElement('strong'); heading.textContent = 'Clear Pop Up · Pop-up bloqué';
+    const text = document.createElement('p'); text.setAttribute('role', 'status'); text.textContent = `Une fenêtre a été bloquée sur ${blockedHost}.`;
+    const hint = document.createElement('small'); hint.textContent = 'Autoriser ce site le place dans les exceptions de protection. Aucune fenêtre ne sera rouverte automatiquement.';
+    const actions = document.createElement('div');
+    const allow = document.createElement('button'); allow.textContent = 'Autoriser ce site';
+    const keep = document.createElement('button'); keep.textContent = 'Garder bloqué';
+    keep.addEventListener('click', event => { if (event.isTrusted) dismissPopupNotice(); });
+    allow.addEventListener('click', async event => {
+      if (!event.isTrusted) return;
+      allow.disabled = keep.disabled = true;
+      const result = await send({type: 'allow-site', documentId: source.documentId});
+      if (!result?.ok) { text.textContent = 'Impossible d’autoriser le site. Rechargez la page et réessayez.'; allow.disabled = keep.disabled = false; return; }
+      text.textContent = `${result.host} est autorisé. Rechargez la page pour réessayer la fenêtre souhaitée.`;
+      hint.textContent = 'Vous pourrez retirer cette exception depuis l’icône Clear Pop Up.';
+      allow.textContent = 'Recharger la page'; allow.disabled = false;
+      // Replace the permission handler; reloading remains an explicit second choice.
+      const reload = allow.cloneNode(true); allow.replaceWith(reload);
+      reload.addEventListener('click', click => { if (click.isTrusted) location.reload(); });
+      keep.textContent = 'Fermer'; keep.disabled = false;
+    });
+    actions.append(allow, keep); box.append(heading, text, hint, actions); root.append(style, box);
+    (document.documentElement || document).append(popupNotice);
+  }
   for (const type of ['pointerdown', 'keydown']) window.addEventListener(type, event => {
     if (event.isTrusted && !withinOurs(event.composedPath()[0])) lastInteraction = performance.now();
   }, true);
@@ -142,6 +178,8 @@
   function keyPick(event) { if (event.key === 'Escape') { event.preventDefault(); stopPick(); } }
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id) return;
+    if (message.type === 'get-origin') { reply({host}); return; }
+    if (message.type === 'blocked-popup') { firstPopup(message); reply({ok: true}); return; }
     if (message.type === 'undo') reply({ok: restoreLast()});
     if (message.type === 'scan') { scan(true); reply({ok: true}); }
     if (message.type === 'pick') {
@@ -151,6 +189,10 @@
     }
   });
   chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.settings) { config = changes.settings.newValue || config; stopPick(); configure(); } });
+  window.addEventListener('clear-popup:advanced-ready', () => {
+    if (globalThis.clearPopupAdvancedStart === true) { configReady = true; configure(); }
+  });
+  if (configReady) configure();
   if (window === top) send({type: 'reset'});
   chrome.storage.local.get('settings').then(result => { if (result.settings) config = result.settings; configReady = true; configure(); }).catch(() => {});
   document.addEventListener('visibilitychange', () => { if (!document.hidden) scan(); });

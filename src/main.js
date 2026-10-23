@@ -19,6 +19,7 @@
   }
   for (const type of ['pointerdown', 'click', 'keydown']) window.addEventListener(type, event => {
     if (!event.isTrusted || event.repeat) return;
+    if (event.composedPath().some(node => node instanceof Element && node.matches('[data-clear-popup-notice],[data-clear-popup-ui]'))) { lastGesture = -Infinity; return; }
     lastGesture = now(); suspiciousGesture = fullScreenTrap(event.composedPath()[0]);
   }, true);
   window.addEventListener(configEvent, event => {

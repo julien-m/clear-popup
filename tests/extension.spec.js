@@ -31,7 +31,13 @@ async function setup() {
   context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
   let worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const extensionId = new URL(worker.url()).host;
-  await expect.poll(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts().then(s => s.length))).toBe(1);
+  try {
+    await expect.poll(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts().then(s => s.length))).toBe(2);
+  } catch(error) {
+    const state=await worker.evaluate(async()=>({settings:await chrome.storage.local.get(null),scripts:await chrome.scripting.getRegisteredContentScripts()}));
+    await context.close();await rm(profile,{recursive:true,force:true});
+    throw new Error(`${error.message}\nExtension startup state: ${JSON.stringify(state)}`);
+  }
   const page = await context.newPage(); await page.goto(origin);
   async function panel() { const panel = await context.newPage(); await page.bringToFront(); await panel.goto(`chrome-extension://${extensionId}/popup.html`); await expect(panel.locator('#host')).toHaveText(new URL(page.url()).hostname); return panel; }
   return {context,page,panel,worker,requests,errors,async close(){ await context.close(); await rm(profile,{recursive:true,force:true}); }};
@@ -91,7 +97,7 @@ test('exception sur hôte exact, configuration persistante sans URL ni historiqu
     await env.page.reload();
     const opened=env.context.waitForEvent('page'); const accepted=await env.page.evaluate(()=>window.open('/target','_blank')!==null); expect(accepted).toBe(true); const popup=await opened; await popup.close();
     await overlay(env.page); await expect(env.page.locator('#test-overlay')).toBeVisible();
-    const registrations=await env.worker.evaluate(()=>chrome.scripting.getRegisteredContentScripts()); expect(registrations[0].excludeMatches).toEqual(['*://localhost/*']);
+    const registrations=await env.worker.evaluate(()=>chrome.scripting.getRegisteredContentScripts()); expect(registrations.find(script=>script.id==='clear-popup-main').excludeMatches).toEqual(['*://localhost/*']);
     // Different host on the same fixture server must not inherit the exception.
     await env.page.goto(origin.replace('localhost','127.0.0.1')); expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
     const data=await env.worker.evaluate(()=>chrome.storage.local.get(null)); expect(Object.keys(data)).toEqual(['settings']); expect(data.settings.exceptions).toEqual(['localhost']); expect(JSON.stringify(data)).not.toContain('/target');
@@ -170,6 +176,77 @@ test('overlay détecté pendant le chargement, avant DOMContentLoaded', async ()
     expect(frames.every(frame=>frame.ready==='loading')).toBe(true);
     expect(frames.map(frame=>frame.display)).toEqual(Array(frames.length).fill('none'));
     const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+    expect(env.errors).toEqual([]);
+  } finally {await env.close()}
+});
+
+// Accessibility observes the closed shadow tree without exposing it to page scripts.
+async function noticeAX(page, action) {
+  const cdp=await page.context().newCDPSession(page);
+  try {
+    const {nodes}=await cdp.send('Accessibility.getFullAXTree');
+    const region=nodes.find(n=>n.role?.value==='region' && n.name?.value==='Pop-up bloqué par Clear Pop Up');
+    const ids=new Set(region ? [region.nodeId] : []);
+    for (let changed=true;changed;) {changed=false;for(const n of nodes) if(ids.has(n.nodeId)) for(const id of n.childIds||[]) if(!ids.has(id)){ids.add(id);changed=true;}}
+    return await action(cdp,nodes.filter(n=>ids.has(n.nodeId)));
+  } finally {await cdp.detach()}
+}
+async function noticeText(page) {return noticeAX(page,async (_,nodes)=>nodes.map(n=>n.name?.value||'').join(' '))}
+async function clickNotice(page,name) {
+  await expect.poll(()=>noticeText(page)).toContain(name);
+  await noticeAX(page,async (cdp,nodes)=>{
+    const button=nodes.find(n=>n.role?.value==='button' && n.name?.value===name);
+    const {model}=await cdp.send('DOM.getBoxModel',{backendNodeId:button.backendDOMNodeId});
+    const q=model.border;await page.mouse.click((q[0]+q[4])/2,(q[1]+q[5])/2);
+  });
+}
+
+test('premier refus : notification unique, garder bloqué et réaffichage au rechargement', async () => {
+  const env=await setup();
+  try {
+    await env.page.evaluate(()=>window.open('/target','_blank'));
+    const notice=env.page.locator('[data-clear-popup-notice]');
+    await expect(notice).toBeVisible();
+    await notice.screenshot({path:process.env.CLEAR_POPUP_NOTICE_PROOF_PATH || test.info().outputPath('first-popup-notice.png')});
+    await clickNotice(env.page,'Garder bloqué');await expect(notice).toHaveCount(0);
+    await env.page.evaluate(()=>window.open('/target','_blank'));
+    const panel=await env.panel();await expect(panel.locator('#popups')).toHaveText('2');
+    await expect(notice).toHaveCount(0);expect((await env.worker.evaluate(()=>chrome.storage.local.get('settings'))).settings.exceptions).toEqual([]);
+    await panel.close();await env.page.reload();await env.page.evaluate(()=>window.open('/target','_blank'));await expect(notice).toBeVisible();
+    expect(env.errors).toEqual([]);
+  } finally {await env.close()}
+});
+
+test('autoriser exige un vrai clic, ajoute l’hôte exact et propose le rechargement sans rejouer la fenêtre', async () => {
+  const env=await setup();
+  try {
+    await env.page.evaluate(()=>window.open('/target','_blank'));
+    const notice=env.page.locator('[data-clear-popup-notice]');
+    await expect(notice).toBeVisible();
+    expect(await notice.evaluate(host=>host.shadowRoot)).toBe(null);
+    await notice.evaluate(host=>host.click());
+    expect((await env.worker.evaluate(()=>chrome.storage.local.get('settings'))).settings.exceptions).toEqual([]);
+    await clickNotice(env.page,'Autoriser ce site');await expect.poll(()=>noticeText(env.page)).toContain('Recharger la page');
+    expect((await env.worker.evaluate(()=>chrome.storage.local.get('settings'))).settings.exceptions).toEqual(['localhost']);
+    expect(env.context.pages().filter(page=>page.url().endsWith('/target'))).toHaveLength(0);
+    await Promise.all([env.page.waitForNavigation(),clickNotice(env.page,'Recharger la page')]);
+    await expect(notice).toHaveCount(0);
+    const opened=env.context.waitForEvent('page');expect(await env.page.evaluate(()=>window.open('/target','_blank')!==null)).toBe(true);await (await opened).close();
+    expect(env.errors).toEqual([]);
+  } finally {await env.close()}
+});
+
+test('refus dans une iframe : notification principale et exception limitée à l’origine de cette frame', async () => {
+  const env=await setup();
+  try {
+    await env.page.evaluate(url=>{const frame=document.createElement('iframe');frame.src=url;document.body.append(frame)},origin.replace('localhost','127.0.0.1'));
+    await expect.poll(()=>env.page.frames().length).toBe(2);const frame=env.page.frames().find(frame=>frame.parentFrame());await frame.waitForLoadState();
+    expect(await frame.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
+    const notice=env.page.locator('[data-clear-popup-notice]');await expect.poll(()=>noticeText(env.page)).toContain('127.0.0.1');
+    await expect(frame.locator('[data-clear-popup-notice]')).toHaveCount(0);
+    await clickNotice(env.page,'Autoriser ce site');await expect.poll(()=>noticeText(env.page)).toContain('127.0.0.1 est autorisé');
+    expect((await env.worker.evaluate(()=>chrome.storage.local.get('settings'))).settings.exceptions).toEqual(['127.0.0.1']);
+    expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
     expect(env.errors).toEqual([]);
   } finally {await env.close()}
 });

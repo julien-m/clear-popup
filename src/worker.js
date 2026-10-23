@@ -4,14 +4,19 @@ let queue = Promise.resolve();
 function serial(fn) { const next = queue.then(fn); queue = next.catch(() => {}); return next; }
 async function settings() { return normalize((await chrome.storage.local.get('settings')).settings); }
 async function registration(config) {
-  const existing = await chrome.scripting.getRegisteredContentScripts({ids: [SCRIPT_ID]});
-  if (!config.enabled || !config.basic) {
-    if (existing.length) await chrome.scripting.unregisterContentScripts({ids: [SCRIPT_ID]});
-    return;
+  for (const [id, enabled, file, world] of [
+    [SCRIPT_ID, config.basic, 'main.js', 'MAIN'],
+    ['clear-popup-advanced', config.advanced, 'advanced-start.js', 'ISOLATED'],
+  ]) {
+    const existing = await chrome.scripting.getRegisteredContentScripts({ids: [id]});
+    if (!config.enabled || !enabled) {
+      if (existing.length) await chrome.scripting.unregisterContentScripts({ids: [id]});
+      continue;
+    }
+    const spec = {id, matches: ['http://*/*', 'https://*/*'], excludeMatches: config.exceptions.map(host => `*://${host}/*`), js: [file], runAt: 'document_start', world, allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true};
+    if (existing.length) await chrome.scripting.updateContentScripts([spec]);
+    else await chrome.scripting.registerContentScripts([spec]);
   }
-  const spec = {id: SCRIPT_ID, matches: ['http://*/*', 'https://*/*'], excludeMatches: config.exceptions.map(host => `*://${host}/*`), js: ['main.js'], runAt: 'document_start', world: 'MAIN', allFrames: true, matchOriginAsFallback: true, persistAcrossSessions: true};
-  if (existing.length) await chrome.scripting.updateContentScripts([spec]);
-  else await chrome.scripting.registerContentScripts([spec]);
 }
 async function count(tabId, change, sender) {
   const key = `tab-${tabId}`;
@@ -33,6 +38,25 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
   const fromPanel = sender.url === chrome.runtime.getURL('popup.html');
   const operation = async () => {
     if (sender.tab && !fromPanel) {
+      if (message.type === 'popup-notice') {
+        return await chrome.tabs.sendMessage(sender.tab.id, {type: 'blocked-popup', host: hostname(sender.url), documentId: sender.documentId}, {frameId: 0});
+      }
+      if (message.type === 'allow-site') {
+        let host = hostname(sender.url);
+        if (message.documentId !== undefined) {
+          if (sender.frameId !== 0 || typeof message.documentId !== 'string' || message.documentId.length > 128) return {ok: false};
+          const origin = await chrome.tabs.sendMessage(sender.tab.id, {type: 'get-origin'}, {documentId: message.documentId});
+          host = origin?.host;
+        }
+        if (!validHost(host)) return {ok: false};
+        const config = await settings();
+        config.exceptions = [...new Set([...config.exceptions, host])];
+        const normalized = normalize(config);
+        if (!normalized.exceptions.includes(host)) return {ok: false};
+        await registration(normalized);
+        await chrome.storage.local.set({settings: normalized});
+        return {ok: true, host};
+      }
       if (message.type === 'count') { await count(sender.tab.id, message, sender); return {ok: true}; }
       if (message.type === 'undone') {
         const key = `tab-${sender.tab.id}`;
