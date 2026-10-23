@@ -1,0 +1,53 @@
+@import "tailwindcss" source(none);
+@source "../src/popup.html";
+@import "basecoat-css/base/base.css";
+@import "basecoat-css/components/button";
+@import "basecoat-css/components/switch";
+@import "basecoat-css/components/checkbox";
+@import "basecoat-css/components/field";
+@import "basecoat-css/components/input";
+@import "basecoat-css/styles/vega";
+@import "./clear-theme.css";
+
+@layer base {
+  html { font-family: var(--clear-font); font-size: 14px; }
+  body { margin: 0; width: 380px; background: var(--clear-bg); color: var(--clear-text); }
+  button, input, summary { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 2px solid var(--clear-focus); outline-offset: 2px; }
+}
+.app-header { display: flex; gap: 12px; align-items: center; padding: 20px 20px 16px; }
+.app-mark { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--clear-brand-subtle); color: var(--clear-brand-text); flex-shrink: 0; }
+.app-mark svg { width: 24px; height: 24px; }
+h1 { font-size: 18px; font-weight: 650; letter-spacing: -.4px; line-height: 1.3; margin: 0; }
+.tagline { color: var(--clear-text-muted); font-size: 12px; margin-top: 4px; }
+main { padding: 0 20px 16px; }
+.summary { padding: 16px; border: 1px solid var(--clear-border); border-radius: 12px; background: var(--clear-brand-subtle); color: var(--clear-brand-text); overflow-wrap: anywhere; }
+#protection-state { display: flex; gap: 8px; align-items: center; font-size: 13px; font-weight: 650; }
+#protection-state::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+#host { display: block; margin-top: 8px; color: var(--clear-text); font-size: 12px; }
+.summary p { margin: 8px 0 4px; font-size: 12px; }
+.summary small { color: inherit; opacity: .85; }
+.summary[data-protection='allowed'] { background: var(--clear-caution-subtle); color: var(--clear-caution-text); }
+.summary[data-protection='off'] { background: var(--clear-surface-2); color: var(--clear-text-muted); border-style: dashed; }
+.settings-note { font-size: 11px; color: var(--clear-text-muted); line-height: 1.5; margin: 12px 0 4px; }
+.settings { border-bottom: 1px solid var(--clear-border); }
+.field.setting-row { display: flex; flex-direction: row; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--clear-border); cursor: pointer; }
+.field.setting-row:last-child { border: 0; }
+.setting-row > span { font-size: 13px; line-height: 1.5; }
+small { display: block; font-size: 11px; line-height: 1.5; color: var(--clear-text-muted); margin-top: 2px; }
+h2 { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .7px; color: var(--clear-text-muted); margin: 16px 0 8px; }
+.tools { display: grid; gap: 8px; }
+.tools h2 { margin-bottom: 0; }
+.tools .btn { width: 100%; justify-content: flex-start; min-height: var(--clear-control-h); white-space: normal; height: auto; padding: 8px 12px; text-align: left; }
+.btn { cursor: pointer; font-family: var(--clear-font); }
+.btn[data-variant='outline'] { background: var(--clear-surface); }
+.btn:disabled { cursor: default; }
+.field.remember { display: flex; flex-direction: row; align-items: center; gap: 8px; font-size: 12px; padding: 4px 0; }
+details { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--clear-border); font-size: 12px; }
+summary { cursor: pointer; font-weight: 600; }
+details p { margin-top: 8px; color: var(--clear-text-muted); line-height: 1.5; }
+#erase { width: 100%; margin-top: 12px; white-space: normal; height: auto; min-height: 32px; padding: 8px 12px; }
+#status { margin-top: 8px; font-size: 11px; color: var(--clear-text-muted); line-height: 1.5; }
+#status:empty { display: none; }
+.app-footer { padding: 12px 20px; border-top: 1px solid var(--clear-border); color: var(--clear-text-muted); font-size: 11px; text-align: center; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; } }

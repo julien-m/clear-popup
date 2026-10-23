@@ -1,0 +1,16 @@
+/* Injected inside closed shadow roots only. No Basecoat runtime on visited pages. */
+:host { all: initial; position: fixed !important; right: 16px !important; z-index: 2147483647 !important; font: 13px/1.45 var(--clear-font) !important; color: var(--clear-text) !important; color-scheme: light dark; }
+:host([data-clear-popup-notice]) { top: 12px !important; width: min(340px, calc(100vw - 32px)) !important; }
+:host([data-clear-popup-ui]) { bottom: 16px !important; max-width: calc(100vw - 32px) !important; }
+* { box-sizing: border-box; }
+section { background: var(--clear-surface); color: var(--clear-text); border: 1px solid var(--clear-border); border-radius: var(--clear-radius-lg); box-shadow: var(--clear-shadow-2); padding: 16px; }
+strong { display: block; font-size: 14px; }
+p { font-size: 13px; line-height: 1.5; margin: 8px 0; overflow-wrap: anywhere; }
+small { display: block; font-size: 11px; color: var(--clear-text-muted); line-height: 1.5; margin: 8px 0 12px; }
+div { display: flex; gap: 8px; flex-wrap: wrap; }
+button { font: 600 12px var(--clear-font); min-height: var(--clear-control-h); border: 1px solid var(--clear-border-strong); border-radius: var(--clear-radius-md); padding: 6px 12px; cursor: pointer; background: var(--clear-surface); color: var(--clear-text); }
+button:first-of-type { background: var(--clear-brand); color: var(--clear-on-brand); border-color: transparent; }
+button:focus-visible { outline: 2px solid var(--clear-focus); outline-offset: 2px; }
+button:disabled { opacity: .6; cursor: wait; }
+:host([data-clear-popup-ui]) section { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px; }
+:host([data-clear-popup-ui]) span { font-size: 12px; }

@@ -43,7 +43,7 @@ async function count(tabId, change, sender) {
   if (sender && change.overlays > 0) value.undoFrames = [...value.undoFrames, {frameId: sender.frameId, documentId: sender.documentId}].slice(-100);
   await chrome.storage.session.set({[key]: value});
   const total = value.popups + value.overlays;
-  await chrome.action.setBadgeBackgroundColor({tabId, color: '#175c4b'});
+  await chrome.action.setBadgeBackgroundColor({tabId, color: '#3d4fd6'});
   await chrome.action.setBadgeText({tabId, text: total ? (total > 999 ? '999+' : String(total)) : ''});
 }
 chrome.runtime.onInstalled.addListener(() => serial(async () => { const config = await settings(); await chrome.storage.local.set({settings: config}); await registration(config); }));

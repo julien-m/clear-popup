@@ -1,9 +1,9 @@
-# Confidentialité
+# Privacy
 
-Clear Pop Up 0.1.4 n'envoie aucune donnée et ne contacte aucun serveur.
+Clear Pop Up 0.2.0 sends no data and contacts no servers.
 
-Le DOM de la page est examiné localement pour reconnaître les couches gênantes. Aucun texte de page, conversation, achat, URL complète, historique ou identifiant de suivi n'est conservé par l'extension.
+The page DOM is examined locally to identify intrusive layers. The extension does not retain page text, conversations, purchases, full URLs, browsing history or tracking identifiers.
 
-Le stockage local contient uniquement les réglages booléens, les hôtes explicitement autorisés et les sélecteurs CSS explicitement mémorisés. Les compteurs et références techniques permettant la restauration dans les iframes sont temporaires, dans la session navigateur. Les hôtes et sélecteurs sont eux-mêmes des données personnelles potentielles; ils ne quittent pas votre ordinateur via cette extension.
+Local storage contains only boolean settings, explicitly allowed hostnames and explicitly saved CSS selectors. Counters and technical references used to restore elements across frames live temporarily in browser session storage. Hostnames and selectors can themselves be personal data; this extension does not transmit them.
 
-Le bouton « Effacer les exceptions et choix mémorisés » supprime ces choix. La désinstallation efface le stockage de l'extension. Il n'y a aucune page de désinstallation distante, analytique, synchronisation cloud ni dépendance d'exécution externe.
+Use **Clear exceptions and saved selections** to erase those choices. Uninstalling removes extension storage. There is no remote uninstall page, analytics or cloud synchronization. Basecoat styles, theme tokens and dependencies are bundled locally; no CDN, remote fonts or runtime downloads are used.

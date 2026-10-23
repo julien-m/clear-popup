@@ -1,0 +1,146 @@
+/*! Clear theme 1.0.0 | MIT | Local fonts and tokens only; no components or network. */
+:root, :host {
+  --clear-font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --clear-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --clear-fs-xs: 12px;
+  --clear-fs-sm: 13px;
+  --clear-fs-md: 14px;
+  --clear-fs-lg: 16px;
+  --clear-fs-xl: 20px;
+  --clear-lh: 1.45;
+  --clear-space-2: 2px;
+  --clear-space-4: 4px;
+  --clear-space-8: 8px;
+  --clear-space-12: 12px;
+  --clear-space-16: 16px;
+  --clear-space-24: 24px;
+  --clear-space-32: 32px;
+  --clear-radius-sm: 4px;
+  --clear-radius-md: 8px;
+  --clear-radius-lg: 12px;
+  --clear-radius-full: 999px;
+  --clear-control-h: 32px;
+  --clear-focus-width: 2px;
+  --clear-focus-offset: 2px;
+  --clear-dur: 160ms;
+  --clear-ease: cubic-bezier(.2, 0, 0, 1);
+  --clear-z-layer: 2147483646;
+}
+
+/* ---------- 2. Theme tokens ---------- */
+:root, :host, [data-theme="light"], :host([data-theme="light"]) {
+  color-scheme: light;
+  --clear-bg: #F5F6F8;
+  --clear-surface: #FFFFFF;
+  --clear-surface-2: #EEF0F3;
+  --clear-border: #DDE1E7;          /* decorative separators only */
+  --clear-border-strong: #7D838F;   /* control boundaries, >= 3:1 */
+  --clear-text: #16181D;
+  --clear-text-muted: #545A67;
+  --clear-text-disabled: #8A8F9A;   /* exempt from contrast (inactive) */
+  --clear-neutral: #545A67;
+  --clear-brand: #3D4FD6;
+  --clear-brand-hover: #3442BB;
+  --clear-on-brand: #FFFFFF;
+  --clear-brand-subtle: #EDEFFD;
+  --clear-brand-text: #3442BB;
+  --clear-caution: #9A6200;
+  --clear-caution-subtle: #FDF4E3;
+  --clear-caution-text: #7A4900;
+  --clear-danger: #C2322B;
+  --clear-danger-hover: #A12520;
+  --clear-on-danger: #FFFFFF;
+  --clear-danger-subtle: #FDEDEC;
+  --clear-danger-text: #A12520;
+  --clear-focus: #3D4FD6;
+  --clear-shadow-1: 0 1px 2px rgb(16 24 40 / .08);
+  --clear-shadow-2: 0 4px 12px rgb(16 24 40 / .14);
+}
+
+[data-theme="dark"], :host([data-theme="dark"]) {
+  color-scheme: dark;
+  --clear-bg: #101216;
+  --clear-surface: #181B21;
+  --clear-surface-2: #22262E;
+  --clear-border: #2C313A;
+  --clear-border-strong: #767D8A;
+  --clear-text: #ECEEF2;
+  --clear-text-muted: #A3A9B5;
+  --clear-text-disabled: #6E7582;
+  --clear-neutral: #A3A9B5;
+  --clear-brand: #8C9AFF;
+  --clear-brand-hover: #A6B1FF;
+  --clear-on-brand: #0D1030;
+  --clear-brand-subtle: #1E2240;
+  --clear-brand-text: #A9B4FF;
+  --clear-caution: #F2BA55;
+  --clear-caution-subtle: #2B2314;
+  --clear-caution-text: #F5C46A;
+  --clear-danger: #FF8F87;
+  --clear-danger-hover: #FFA59E;
+  --clear-on-danger: #1A0705;
+  --clear-danger-subtle: #2E1716;
+  --clear-danger-text: #FFA59E;
+  --clear-focus: #8C9AFF;
+  --clear-shadow-1: 0 1px 2px rgb(0 0 0 / .4);
+  --clear-shadow-2: 0 4px 12px rgb(0 0 0 / .5);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]), :host(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --clear-bg: #101216;
+    --clear-surface: #181B21;
+    --clear-surface-2: #22262E;
+    --clear-border: #2C313A;
+    --clear-border-strong: #767D8A;
+    --clear-text: #ECEEF2;
+    --clear-text-muted: #A3A9B5;
+    --clear-text-disabled: #6E7582;
+    --clear-neutral: #A3A9B5;
+    --clear-brand: #8C9AFF;
+    --clear-brand-hover: #A6B1FF;
+    --clear-on-brand: #0D1030;
+    --clear-brand-subtle: #1E2240;
+    --clear-brand-text: #A9B4FF;
+    --clear-caution: #F2BA55;
+    --clear-caution-subtle: #2B2314;
+    --clear-caution-text: #F5C46A;
+    --clear-danger: #FF8F87;
+    --clear-danger-hover: #FFA59E;
+    --clear-on-danger: #1A0705;
+    --clear-danger-subtle: #2E1716;
+    --clear-danger-text: #FFA59E;
+    --clear-focus: #8C9AFF;
+    --clear-shadow-1: 0 1px 2px rgb(0 0 0 / .4);
+    --clear-shadow-2: 0 4px 12px rgb(0 0 0 / .5);
+  }
+}
+
+
+/* Basecoat theme mapping. Components are selected by each extension. */
+:root, :host, [data-theme] {
+  --radius: var(--clear-radius-md);
+  --font-sans: var(--clear-font);
+  --background: var(--clear-bg);
+  --foreground: var(--clear-text);
+  --card: var(--clear-surface);
+  --card-foreground: var(--clear-text);
+  --popover: var(--clear-surface);
+  --popover-foreground: var(--clear-text);
+  --primary: var(--clear-brand);
+  --primary-foreground: var(--clear-on-brand);
+  --secondary: var(--clear-surface-2);
+  --secondary-foreground: var(--clear-text);
+  --muted: var(--clear-surface-2);
+  --muted-foreground: var(--clear-text-muted);
+  --accent: var(--clear-brand-subtle);
+  --accent-foreground: var(--clear-brand-text);
+  --destructive: var(--clear-danger);
+  --border: var(--clear-border);
+  --input: var(--clear-border-strong);
+  --ring: var(--clear-focus);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root, :host { --clear-dur: 0ms; }
+}

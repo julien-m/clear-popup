@@ -30,27 +30,27 @@
     popupNotice = document.createElement('div'); popupNotice.setAttribute('data-clear-popup-notice', '');
     const root = popupNotice.attachShadow({mode: 'closed'});
     const style = document.createElement('style');
-    style.textContent = ':host{all:initial;position:fixed!important;top:12px!important;right:16px!important;z-index:2147483647!important;width:min(340px,calc(100vw - 32px))!important;font:14px system-ui!important;color:#173d34!important}section{background:#fff;border:1px solid #bed4c8;border-radius:12px;box-shadow:0 8px 32px #0003;padding:16px}strong{display:block;font-size:15px}p{font-size:13px;line-height:1.5;margin:8px 0;overflow-wrap:anywhere}small{display:block;font-size:11px;color:#647a70;line-height:1.5;margin:8px 0 12px}div{display:flex;gap:8px;flex-wrap:wrap}button{font:600 12px system-ui;border:1px solid #bfd2c7;border-radius:7px;padding:9px 11px;cursor:pointer;background:#fff;color:#175c4b}button:first-child{background:#175c4b;color:#fff}button:focus-visible{outline:3px solid #69ac90;outline-offset:2px}button:disabled{opacity:.6;cursor:wait}';
-    const box = document.createElement('section'); box.setAttribute('aria-label', 'Pop-up bloqué par Clear Pop Up'); box.setAttribute('role', 'region');
-    const heading = document.createElement('strong'); heading.textContent = 'Clear Pop Up · Pop-up bloqué';
-    const text = document.createElement('p'); text.setAttribute('role', 'status'); text.textContent = `Une fenêtre a été bloquée sur ${blockedHost}.`;
-    const hint = document.createElement('small'); hint.textContent = 'Exception pour Clear Pop Up uniquement. Chrome et les autres bloqueurs restent indépendants. Aucune fenêtre ne sera rouverte automatiquement.';
+    style.textContent = globalThis.clearPopupThemeCSS;
+    const box = document.createElement('section'); box.setAttribute('aria-label', 'Pop-up blocked by Clear Pop Up'); box.setAttribute('role', 'region');
+    const heading = document.createElement('strong'); heading.textContent = 'Clear Pop Up · Pop-up blocked';
+    const text = document.createElement('p'); text.setAttribute('role', 'status'); text.textContent = `A pop-up was blocked on ${blockedHost}.`;
+    const hint = document.createElement('small'); hint.textContent = 'This exception applies only to Clear Pop Up. Chrome and other blockers operate independently. No window will be reopened automatically.';
     const actions = document.createElement('div');
-    const allow = document.createElement('button'); allow.textContent = 'Autoriser ce site';
-    const keep = document.createElement('button'); keep.textContent = 'Garder bloqué';
+    const allow = document.createElement('button'); allow.textContent = 'Allow this site';
+    const keep = document.createElement('button'); keep.textContent = 'Keep blocked';
     keep.addEventListener('click', event => { if (event.isTrusted) dismissPopupNotice(); });
     allow.addEventListener('click', async event => {
       if (!event.isTrusted) return;
       allow.disabled = keep.disabled = true;
       const result = await send({type: 'allow-site', documentId: source.documentId});
-      if (!result?.ok) { text.textContent = 'Impossible d’autoriser le site. Rechargez la page et réessayez.'; allow.disabled = keep.disabled = false; return; }
-      text.textContent = `${result.host} est autorisé. Rechargez la page pour réessayer la fenêtre souhaitée.`;
-      hint.textContent = 'Vous pourrez retirer cette exception depuis l’icône Clear Pop Up.';
-      allow.textContent = 'Recharger la page'; allow.disabled = false;
+      if (!result?.ok) { text.textContent = 'Could not allow this site. Reload the page and try again.'; allow.disabled = keep.disabled = false; return; }
+      text.textContent = `${result.host} is allowed. Reload the page to try the intended pop-up again.`;
+      hint.textContent = 'You can remove this exception from the Clear Pop Up toolbar icon.';
+      allow.textContent = 'Reload page'; allow.disabled = false;
       // Replace the permission handler; reloading remains an explicit second choice.
       const reload = allow.cloneNode(true); allow.replaceWith(reload);
       reload.addEventListener('click', click => { if (click.isTrusted) location.reload(); });
-      keep.textContent = 'Fermer'; keep.disabled = false;
+      keep.textContent = 'Close'; keep.disabled = false;
     });
     actions.append(allow, keep); box.append(heading, text, hint, actions); root.append(style, box);
     (document.documentElement || document).append(popupNotice);
@@ -92,11 +92,11 @@
     toolbar = document.createElement('div');
     toolbar.setAttribute('data-clear-popup-ui', ''); shadow = toolbar.attachShadow({mode: 'closed'});
     const style = document.createElement('style');
-    style.textContent = ':host{all:initial;position:fixed!important;bottom:16px!important;right:16px!important;z-index:2147483647!important;font:13px system-ui!important;color:#fff!important}section{display:flex;gap:10px;align-items:center;background:#123d33;border:1px solid #7bbaa6;border-radius:12px;padding:10px 14px;box-shadow:0 4px 24px #0004}button{font:inherit;background:#fff;color:#123d33;border:0;border-radius:6px;padding:6px 10px;cursor:pointer}';
+    style.textContent = globalThis.clearPopupThemeCSS;
     const section = document.createElement('section'); section.setAttribute('aria-label', 'Clear Pop Up');
-    const label = document.createElement('span'); label.textContent = 'Clear Pop Up · overlay masqué';
-    const undo = document.createElement('button'); undo.textContent = 'Restaurer'; undo.addEventListener('click', () => { restoreLast(); });
-    const dismiss = document.createElement('button'); dismiss.textContent = 'Fermer'; dismiss.setAttribute('aria-label', 'Fermer la barre'); dismiss.addEventListener('click', dismissToolbar);
+    const label = document.createElement('span'); label.textContent = 'Clear Pop Up · Overlay hidden';
+    const undo = document.createElement('button'); undo.textContent = 'Restore'; undo.addEventListener('click', () => { restoreLast(); });
+    const dismiss = document.createElement('button'); dismiss.textContent = 'Close'; dismiss.setAttribute('aria-label', 'Close toolbar'); dismiss.addEventListener('click', dismissToolbar);
     toolbar.addEventListener('pointerleave', scheduleToolbarDismiss);
     toolbar.addEventListener('focusout', scheduleToolbarDismiss);
     section.append(label, undo, dismiss); shadow.append(style, section); document.documentElement.append(toolbar);
@@ -198,7 +198,7 @@
   function hoverPick(event) {
     if (withinOurs(event.target) || !(event.target instanceof HTMLElement)) return;
     if (highlighted) highlighted.style.outline = outlineStyle;
-    highlighted = event.target; outlineStyle = highlighted.style.outline; highlighted.style.outline = '3px solid #1eaf82';
+    highlighted = event.target; outlineStyle = highlighted.style.outline; highlighted.style.outline = '3px solid #3d4fd6';
   }
   function clickPick(event) {
     if (withinOurs(event.target)) return;
@@ -216,7 +216,7 @@
     if (message.type === 'undo') reply({ok: restoreLast()});
     if (message.type === 'scan') { scan(true); reply({ok: true}); }
     if (message.type === 'pick') {
-      if (!enabled()) { reply({ok: false, error: 'Protection désactivée sur ce site.'}); return; }
+      if (!enabled()) { reply({ok: false, error: 'Protection is off on this site.'}); return; }
       if (picking) stopPick(); picking = true; rememberPick = message.remember === true;
       document.addEventListener('pointerover', hoverPick, true); document.addEventListener('click', clickPick, true); document.addEventListener('keydown', keyPick, true); reply({ok: true});
     }

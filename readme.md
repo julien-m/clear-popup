@@ -1,58 +1,62 @@
 # Clear Pop Up
 
-Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.4, à tester sur vos sites.
+A local-first Chrome Manifest V3 extension that blocks unsolicited pop-ups and hides intrusive overlays. No telemetry, servers, cloud sync or remote code. MIT licensed.
 
-## Installation Chrome
+## Install
 
-1. Décompressez `clear-popup-0.1.4.zip`.
-2. Ouvrez `chrome://extensions` et activez **Mode développeur**.
-3. Cliquez **Charger l'extension non empaquetée**, puis sélectionnez le dossier `clear-popup` contenant le manifeste.
-4. Épinglez Clear Pop Up. Désactivez l'ancien bloqueur de pop-up pendant les essais pour éviter les interférences. Rechargez les onglets ouverts.
+For a packaged ZIP, extract it and load the extracted `clear-popup` folder containing `manifest.json`. The steps below refer to a source repository checkout.
 
-Le même dossier est chargeable dans Comet. Le paquet n'est pas publié sur le Chrome Web Store, ni signé comme paquet CRX. Une archive ZIP n'est pas installable par simple glisser-déposer dans Chrome.
+1. Download or clone this repository.
+2. Open `chrome://extensions` and enable Developer mode.
+3. Choose **Load unpacked** and select the repository's `src/` folder. Generated UI assets are committed, so no build is needed for this method.
+4. Pin **Clear Pop Up** and open its toolbar popup on a normal HTTP/HTTPS page.
 
-## Fonctionnement
+For a packaged local build, follow the development commands below and load `dist/clear-popup/`. After updating an existing installation, reload it from the extensions page and reload test pages to replace old content-script contexts. The extension is not currently distributed through the Chrome Web Store. Safari packaging has not been validated.
 
-- **Premier pop-up bloqué** : petit message en haut à droite, sous la barre du navigateur, une seule fois par chargement. « Garder bloqué » ferme le message sans changer vos réglages. « Autoriser ce site » ajoute l’hôte affiché aux exceptions de protection (pop-up et overlays), applique le réglage aux pages ouvertes, puis propose un bouton de rechargement distinct pour relancer le scénario du site. La fenêtre refusée n’est jamais rejouée automatiquement. Un refus dans une iframe est signalé dans la page principale avec son hôte; l’exception vise cette origine précise.
+## Features
 
-- **Pop-up classiques** : interception de `window.open`, des liens ciblant une nouvelle fenêtre et des formulaires. Une activation réelle récente est nécessaire. Les liens ordinaires et les fenêtres ouvertes directement par un vrai clic restent utilisables. Le refus renvoie `null`, comme un bloqueur natif; aucun faux objet fenêtre.
-- **Voile vide** : retrait des voiles plein écran qui interceptent les clics alors que leurs enfants sont déjà masqués, par exemple par un filtre cosmétique. Les dialogues demandés dont le contenu reste visible sont préservés.
-- **État du site** : le panneau distingue protection active, site autorisé (gris) et protection désactivée. Les cases générales restent les préférences globales; les exceptions ont priorité. Une exception Clear Pop Up ne modifie ni le bloqueur natif de Chrome ni les autres extensions.
-- **Overlays** : analyse locale de trois points du viewport et de huit ancêtres maximum par point; géométrie, positionnement, priorité et rôle de dialogue. Pas de scan intégral permanent, ni de boucle de polling. Les mutations DOM sont traitées avant le rendu, sans temporisation de 120 ms ni attente de DOMContentLoaded. Les onglets masqués ne sont pas analysés. Un bootstrap isolé, enregistré seulement pour les hôtes protégés, active les heuristiques dès document_start; les règles CSS mémorisées suivent le chargement des réglages locaux. Les exceptions et la désactivation sont respectées dès l’enregistrement.
-- **Prudence** : les interfaces focalisées et celles apparaissant dans les 1,8 seconde suivant une interaction sont conservées. Le bouton de recherche manuelle contourne cette temporisation.
-- **Choix manuel** : sélectionnez un élément; Maj + clic maintient le mode actif pour en masquer plusieurs. Un clic sans Maj termine la sélection; Échap quitte sans masquer d’autre élément. Mémorisation facultative d'un sélecteur CSS unique par hôte, pas du texte de l'élément.
-- **Restauration** : barre dans la page ou bouton dans l'extension. La barre disparaît après 5 secondes sans interaction; la restauration reste disponible depuis l’icône. Le dernier élément revient avec son style précédent. Après restauration, ce même élément est ignoré jusqu'au rechargement. Désactiver les overlays restaure les éléments masqués.
-- **Exceptions** : nom d'hôte exact. `example.com` n'autorise pas `example.com.evil`, ni automatiquement `sub.example.com`. Les iframes sont traitées selon leur propre origine. Les changements sont appliqués aux pages ouvertes, y compris si le script de blocage était absent au chargement. Les onglets fermés, restreints ou dont le contexte d’extension est périmé sont signalés comme nécessitant un rechargement.
-- **Compteurs** : tentatives bloquées et éléments masqués, pas nombre de publicités ou de sites. Ils sont remis à zéro au chargement principal, gardés dans `storage.session`, supprimés avec l'onglet. Ils ne constituent pas un historique.
+- **Basic pop-ups:** intercepts unsolicited `window.open`, target-blank links and forms. Directly requested openings remain allowed. A first-block notice offers **Allow this site** or **Keep blocked**. Allowing requires a trusted click, saves the exact source hostname and offers an explicit reload; blocked windows are never replayed automatically. Chrome and other blockers operate independently.
+- **Automatic overlays:** uses local geometry, positioning and structural signals. Checks three viewport points and up to eight ancestors per point, rather than continuously scanning the whole DOM. Mutation handling runs before paint, including during document loading. Hidden tabs are not scanned.
+- **Requested interfaces:** focused interfaces and those appearing within 1.8 seconds of an interaction are preserved. Manual scanning bypasses that delay. Empty full-screen backdrops left behind by another cosmetic filter can be removed separately.
+- **Manual hiding:** choose an element; hold Shift while clicking to keep selecting. A normal click exits selection; Escape cancels it. Optionally save a unique CSS selector for that hostname, without the element's text.
+- **Undo:** restore the most recently hidden element from the page toolbar or extension popup. The toolbar dismisses after five idle seconds, pausing while hovered or focused. Restored elements are ignored until reload. Disabling overlays restores hidden elements.
+- **Site exceptions:** exact hostname only. `example.com` does not allow `example.com.evil` or automatically allow subdomains. Frames use their own origins. Setting changes apply to open pages; tabs with stale or restricted contexts are reported as needing a reload.
+- **Counters:** count blocked attempts and hidden elements, not ads or sites. They reset on top-level page load, live in session storage and disappear when the tab closes.
 
-## Permissions et données
+## Interface and shared theme
 
-- `storage` : réglages et sélecteurs choisis dans `storage.local`; compteurs temporaires dans `storage.session`. Pas de synchronisation Google.
-- `scripting` : enregistrer les scripts de démarrage MAIN et ISOLATED avant les scripts du site, en excluant les hôtes autorisés.
-- `activeTab` et accès HTTP/HTTPS : interface de l'onglet et intervention sur les pages/iframes. Chrome avertit de l'accès aux sites car le blocage nécessite d'y agir.
+Clear Pop Up uses Basecoat 1.1.0 with the shared Clear 1.0.0 light/dark theme. Indigo indicates active protection, amber marks an allowed site and gray with a dashed border marks disabled protection. All states also have explicit text. The palette follows the OS theme.
 
-Aucune API réseau dans le code de l'extension. Aucun serveur, télémétrie, identifiant, code distant, analyse de conversations, inspection des requêtes ou URL de désinstallation. Les pages continuent naturellement à effectuer leurs propres requêtes. Consultez [la politique de confidentialité](privacy.md).
+Read [the design system](ui/design-system.md) and [theme tokens](ui/clear-theme.css). This repository contains an independent copy of the parent extensions theme, so it builds without a sibling checkout. Edit [the popup source stylesheet](ui/popup.css) or [isolated notification styles](ui/notices.css), then run `bun run ui`. Basecoat supplies control styles; this version uses native controls and existing extension actions, so no Basecoat JavaScript controllers are shipped. Injected notifications use a small isolated theme, not the full Basecoat stylesheet.
 
-## Limites
+## Permissions and data
 
-Les heuristiques peuvent rater un overlay ou masquer une interface utile. Les dialogues de paiement, OAuth et connexion ne sont pas reconnus par mots-clés d'URL : les ouvertures directement sollicitées sont conservées. Des ouvertures légitimes différées peuvent être refusées; utilisez l'exception du site. Une page hostile peut modifier le script MAIN ou imiter ses événements; ce mécanisme n'est pas une barrière de sécurité. Il ne remplace pas le pare-feu ou un bloqueur réseau. Les nouveaux onglets obtenus par des mécanismes navigateur non interceptés peuvent subsister.
+- `storage`: local settings and saved selectors; temporary counters in session storage. No Google synchronization.
+- `scripting`: registers MAIN and ISOLATED startup scripts, excluding allowed hosts.
+- `activeTab` and HTTP/HTTPS host access: interact with the current page and frames to perform blocking and restoration.
 
-Pas de gestion du consentement, de contournement de paywall, de suppression générale des publicités ou de liste malveillante. Le masquage ne garantit pas d'interrompre un média déjà chargé. Les styles/adaptations complexes du site peuvent limiter le déverrouillage du défilement. Les scripts n'agissent pas sur les pages internes de Chrome ni le Web Store.
+There are no extension network APIs, telemetry identifiers, conversation analysis, request inspection or remote uninstall URLs. Websites still make their own network requests. Read [the privacy policy](privacy.md).
 
-## Développement
+## Limitations
 
-Node.js 22+ et npm. Aucune dépendance d'exécution embarquée.
+Heuristics can miss an overlay or hide something useful. Payment, OAuth and login flows are not recognized through URL keyword lists; directly requested openings are preserved, but legitimate delayed openings may require a site exception. A hostile page can modify MAIN-world hooks or imitate events, so this is not a security boundary or a replacement for a firewall/network blocker.
 
-```bash
-npm ci
-npx playwright install chromium
-npm run check
-npm test
-npm run build
+The extension does not manage cookie consent, bypass paywalls, remove all advertisements or maintain malicious-domain lists. Hiding an element does not guarantee that already-loaded media stops. Complex site styles can limit scroll restoration. Internal browser pages and the Chrome Web Store cannot be modified.
+
+## Development
+
+Use Node.js 22+ and Bun. Dependencies are development tools; compiled CSS and small local scripts are bundled with the extension.
+
+```sh
+bun install --frozen-lockfile
+bunx playwright install chromium
+bun run check
+bun run test
+bun run build
 ```
 
-Les tests chargent le vrai paquet MV3 dans un profil Chromium jetable, avec serveur HTTP de fixtures sur loopback. Ils n'utilisent pas votre profil Chrome. Le build crée un dossier chargeable, une archive ZIP et son SHA256 dans `dist/`.
+Tests load the real MV3 extension in disposable Chromium profiles with loopback-only fixture pages; they do not use a personal Chrome profile. The build creates the loadable folder, versioned ZIP and SHA256 in `dist/`. Generated files in `src/` are committed for direct installation.
 
-## Origine et licence
+## License and provenance
 
-Implémentation originale inspirée de l'analyse fonctionnelle de Poper Blocker 8.11.3. Aucun code, catalogue ou SDK de cette extension n'est inclus. Code sous [licence MIT](license). Dépôt Git indépendant local; publication publique non encore effectuée.
+Original implementation informed by functional analysis of Poper Blocker 8.11.3; no source code, SDK or rule catalogue from that product is included. Read [the MIT license](license). Basecoat and Tailwind MIT notices are bundled in [third-party licenses](src/licenses/).

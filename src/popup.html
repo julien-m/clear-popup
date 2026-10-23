@@ -1,14 +1,17 @@
 <!doctype html>
-<html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Clear Pop Up</title><link rel="stylesheet" href="popup.css"></head>
-<body><header><img src="icons/icon-48.png" alt="" width="36" height="36"><div><h1>Clear Pop Up</h1><p>Votre navigation. Vos choix.</p></div></header>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Clear Pop Up</title><link rel="stylesheet" href="popup.css"></head>
+<body>
+<header class="app-header"><span class="app-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 4 4 7 8 9 4-2 8-5 8-9V6Z"/><path d="m8 12 3 3 5-6"/></svg></span><div><h1>Clear Pop Up</h1><p class="tagline">Your browsing. Your choice.</p></div></header>
 <main>
-<section class="summary"><strong id="protection-state" role="status"></strong><strong id="host">Chargement…</strong><p><span id="popups">0</span> pop-up bloqué(s) · <span id="overlays">0</span> overlay(s) masqué(s)</p><small>Depuis le chargement de cet onglet</small></section>
-<p class="settings-note">Réglages généraux : une exception de site a priorité.</p>
-<label class="toggle"><span>Protection globale</span><input id="enabled" type="checkbox" role="switch"></label>
-<label class="toggle"><span>Pop-up classiques<small>Refuser les ouvertures non sollicitées</small></span><input id="basic" type="checkbox" role="switch"></label>
-<label class="toggle"><span>Overlays automatiques<small>Masquer les couches intrusives détectées</small></span><input id="advanced" type="checkbox" role="switch"></label>
-<label class="toggle"><span>Autoriser ce site<small>Exception pour cet hôte exact</small></span><input id="exception" type="checkbox" role="switch"></label>
-<section class="tools"><h2>Sur cette page</h2><button id="scan">Rechercher un overlay maintenant</button><button id="pick">Choisir un élément à masquer</button><label class="remember"><input id="remember" type="checkbox"> Mémoriser ce choix pour ce site</label><button id="undo">Restaurer le dernier élément</button><small>Maj + clic garde la sélection active. Échap quitte. Les masquages restent réversibles.</small></section>
-<details><summary>Mes données locales</summary><p id="data-summary"></p><p>Seuls vos réglages, exceptions et sélecteurs mémorisés sont conservés. Aucun historique, contenu de page ou identifiant de suivi.</p><button id="erase">Effacer les exceptions et choix mémorisés</button></details>
+<section class="summary"><strong id="protection-state" role="status"></strong><strong id="host">Loading…</strong><p><span id="popups">0</span> pop-ups blocked · <span id="overlays">0</span> overlays hidden</p><small>Since this tab loaded</small></section>
+<p class="settings-note">Global settings apply unless this site has an exception.</p>
+<section class="settings" aria-label="Protection settings">
+<label class="field setting-row"><span>Global protection</span><input class="input" id="enabled" type="checkbox" role="switch"></label>
+<label class="field setting-row"><span>Basic pop-ups<small>Block unsolicited windows and tabs</small></span><input class="input" id="basic" type="checkbox" role="switch"></label>
+<label class="field setting-row"><span>Automatic overlays<small>Hide detected intrusive layers</small></span><input class="input" id="advanced" type="checkbox" role="switch"></label>
+<label class="field setting-row"><span>Allow this site<small>Exception for this exact hostname</small></span><input class="input" id="exception" type="checkbox" role="switch"></label>
+</section>
+<section class="tools"><h2>On this page</h2><button class="btn" data-size="sm" data-variant="outline" id="scan">Find an overlay now</button><button class="btn" data-size="sm" id="pick">Choose elements to hide</button><label class="field remember"><input class="input" id="remember" type="checkbox"> Remember selections for this site</label><button class="btn" data-size="sm" data-variant="outline" id="undo">Restore the last element</button><small>Shift + click to keep selecting. Esc to exit.<br>Hidden elements can always be restored.</small></section>
+<details><summary>My local data</summary><p id="data-summary"></p><p>Only settings, site exceptions and saved selectors are stored. No browsing history, page content or tracking identifiers.</p><button class="btn" data-size="sm" data-variant="destructive" id="erase">Clear exceptions and saved selections</button></details>
 <p id="status" role="status" aria-live="polite"></p></main>
-<footer>100 % local · Aucun serveur · Code ouvert</footer><script type="module" src="popup.js"></script></body></html>
+<footer class="app-footer">100% local · No servers · Open source</footer><script type="module" src="popup.js"></script></body></html>
