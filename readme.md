@@ -1,10 +1,10 @@
 # Clear Pop Up
 
-Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.0, à tester sur vos sites.
+Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.1, à tester sur vos sites.
 
 ## Installation Chrome
 
-1. Décompressez `clear-popup-0.1.0.zip`.
+1. Décompressez `clear-popup-0.1.1.zip`.
 2. Ouvrez `chrome://extensions` et activez **Mode développeur**.
 3. Cliquez **Charger l'extension non empaquetée**, puis sélectionnez le dossier `clear-popup` contenant le manifeste.
 4. Épinglez Clear Pop Up. Désactivez l'ancien bloqueur de pop-up pendant les essais pour éviter les interférences. Rechargez les onglets ouverts.
@@ -14,7 +14,7 @@ Le même dossier est chargeable dans Comet. Le paquet n'est pas publié sur le C
 ## Fonctionnement
 
 - **Pop-up classiques** : interception de `window.open`, des liens ciblant une nouvelle fenêtre et des formulaires. Une activation réelle récente est nécessaire. Les liens ordinaires et les fenêtres ouvertes directement par un vrai clic restent utilisables. Le refus renvoie `null`, comme un bloqueur natif; aucun faux objet fenêtre.
-- **Overlays** : analyse locale de trois points du viewport et de huit ancêtres maximum par point; géométrie, positionnement, priorité et rôle de dialogue. Pas de scan intégral permanent, ni de boucle de polling. Les mutations DOM sont regroupées sur 120 ms, et les onglets masqués ne sont pas analysés.
+- **Overlays** : analyse locale de trois points du viewport et de huit ancêtres maximum par point; géométrie, positionnement, priorité et rôle de dialogue. Pas de scan intégral permanent, ni de boucle de polling. Les mutations DOM sont traitées avant le rendu, sans temporisation de 120 ms ni attente de DOMContentLoaded. Les onglets masqués ne sont pas analysés. Les réglages locaux doivent être chargés avant toute intervention pour respecter les exceptions.
 - **Prudence** : les interfaces focalisées et celles apparaissant dans les 1,8 seconde suivant une interaction sont conservées. Le bouton de recherche manuelle contourne cette temporisation.
 - **Choix manuel** : sélectionnez un élément; Échap annule. Mémorisation facultative d'un sélecteur CSS unique par hôte, pas du texte de l'élément.
 - **Restauration** : barre dans la page ou bouton dans l'extension. Le dernier élément revient avec son style précédent. Après restauration, ce même élément est ignoré jusqu'au rechargement. Désactiver les overlays restaure les éléments masqués.

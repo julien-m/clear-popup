@@ -1,8 +1,8 @@
 (() => {
   'use strict';
   let config = {enabled: true, basic: true, advanced: true, exceptions: [], rules: {}};
-  let active = false, picking = false, rememberPick = false;
-  let lastInteraction = -Infinity, timer = 0, pendingPopups = 0, countTimer = 0;
+  let active = false, configReady = false, picking = false, rememberPick = false;
+  let lastInteraction = -Infinity, pendingPopups = 0, countTimer = 0;
   let host = location.hostname;
   if (!host) { try { host = new URL(location.ancestorOrigins[0]).hostname; } catch { /* opaque frame */ } }
   const removed = new Map();
@@ -97,7 +97,7 @@
     return nearCenter && area >= .15 && (dialog || (named && elevated) || (area >= .85 && elevated && s.pointerEvents !== 'none'));
   }
   function scan(force = false) {
-    if (!active || !enabled() || !config.advanced || document.hidden) return;
+    if (!configReady || !active || !enabled() || !config.advanced || document.hidden) return;
     for (const selector of config.rules[host] || []) {
       try { for (const node of [...document.querySelectorAll(selector)].slice(0, 20)) hide(node, 'remembered'); } catch { /* obsolete rule */ }
     }
@@ -109,16 +109,22 @@
     }
     for (const node of candidates) if (isIntrusive(node, force)) hide(node, 'automatic');
   }
-  function schedule(records) {
-    if (!enabled() || !config.advanced || timer || document.hidden) return;
+  function inspectMutations(records) {
+    active = !!document.documentElement;
     if (records && records.every(record => withinOurs(record.target) || removed.has(record.target))) return;
-    timer = setTimeout(() => { timer = 0; scan(); }, 120);
+    // MutationObserver runs at the microtask checkpoint before rendering. A timer
+    // or a next-frame callback here would allow a newly inserted overlay to flash.
+    scan();
   }
-  const observer = new MutationObserver(schedule);
+  const observer = new MutationObserver(inspectMutations);
   function configure() {
-    mainConfig(); observer.disconnect(); clearTimeout(timer); timer = 0;
+    mainConfig(); observer.disconnect();
+    if (!configReady) return;
     if (!enabled() || !config.advanced) { while (removed.size) restoreLast(); return; }
-    if (active) { observer.observe(document.documentElement, {subtree: true, childList: true, attributes: true, attributeFilter: ['class','style','open','aria-modal']}); schedule(); }
+    // Watch the Document even before <html> exists; do not wait for DOMContentLoaded.
+    active = !!document.documentElement;
+    observer.observe(document, {subtree: true, childList: true, attributes: true, attributeFilter: ['class','style','open','aria-modal']});
+    scan();
   }
   function stopPick() {
     picking = false; if (highlighted) highlighted.style.outline = outlineStyle;
@@ -146,9 +152,7 @@
   });
   chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.settings) { config = changes.settings.newValue || config; stopPick(); configure(); } });
   if (window === top) send({type: 'reset'});
-  chrome.storage.local.get('settings').then(result => { if (result.settings) config = result.settings; configure(); }).catch(() => {});
-  function start() { active = true; configure(); }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, {once: true}); else start();
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) schedule(); });
-  window.addEventListener('resize', () => schedule(), {passive: true});
+  chrome.storage.local.get('settings').then(result => { if (result.settings) config = result.settings; configReady = true; configure(); }).catch(() => {});
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) scan(); });
+  window.addEventListener('resize', () => scan(), {passive: true});
 })();

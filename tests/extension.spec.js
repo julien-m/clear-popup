@@ -12,7 +12,12 @@ document.getElementById('legit').onclick=()=>window.open('/target','clear-popup-
 document.getElementById('dialog').onclick=()=>{const n=document.createElement('div');n.id='consentless';n.className='overlay';n.setAttribute('role','dialog');n.setAttribute('aria-modal','true');n.innerHTML='<div class="card">Dialogue demandé<button>Fermer</button></div>';document.body.append(n)};
 </script></body></html>`;
 test.beforeAll(async () => {
-  server = createServer((req,res) => { res.writeHead(200,{'content-type':'text/html; charset=utf-8'}); res.end(req.url === '/target' ? '<title>Fenêtre autorisée</title>Fenêtre légitime' : fixture); });
+  server = createServer((req,res) => {
+    if (req.url === '/hold-ready.js') {res.writeHead(200,{'content-type':'text/javascript'});setTimeout(()=>res.end(''),500);return;}
+    const early = `<script>const early=document.createElement('div');early.id='early-overlay';early.className='overlay';early.textContent='Overlay pendant le chargement';document.body.append(early);window.earlyFrames=[];function sampleEarly(){window.earlyFrames.push({display:getComputedStyle(early).display,ready:document.readyState});if(window.earlyFrames.length<5)requestAnimationFrame(sampleEarly)}requestAnimationFrame(sampleEarly);</script><script src='/hold-ready.js'></script>`;
+    res.writeHead(200,{'content-type':'text/html; charset=utf-8'});
+    res.end(req.url === '/target' ? '<title>Fenêtre autorisée</title>Fenêtre légitime' : req.url === '/early-overlay' ? fixture.replace('</body>',early+'</body>') : fixture);
+  });
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
   origin = `http://localhost:${server.address().port}`;
 });
@@ -135,4 +140,36 @@ test('iframe et piège plein écran, blocage avant création de fenêtre', async
     await env.page.locator('#trap').click(); const state=await env.panel(); await expect(state.locator('#popups')).toHaveText('2');
     expect(env.context.pages().filter(page=>page.url().endsWith('/target'))).toHaveLength(0); expect(env.errors).toEqual([]);
   } finally { await env.close(); }
+});
+
+test('overlay masqué avant la première image et compteur incrémenté une seule fois', async () => {
+  const env=await setup();
+  try {
+    const frames=await env.page.evaluate(()=>new Promise(resolve=>{
+      requestAnimationFrame(()=>{
+        const node=document.createElement('div');node.id='prepaint-overlay';node.className='overlay';node.textContent='Cette couche ne doit pas être affichée';document.body.append(node);
+        const samples=[];
+        function sample(){samples.push(getComputedStyle(node).display);if(samples.length<5)requestAnimationFrame(sample);else resolve(samples)}
+        requestAnimationFrame(sample);
+      });
+    }));
+    expect(frames.filter(display=>display!=='none'), 'Aucune image de rendu ne doit contenir l’overlay').toEqual([]);
+    const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+    await panel.locator('#undo').click();await expect(env.page.locator('#prepaint-overlay')).toBeVisible();
+    expect(env.errors).toEqual([]);
+  } finally {await env.close()}
+});
+
+
+test('overlay détecté pendant le chargement, avant DOMContentLoaded', async () => {
+  const env=await setup();
+  try {
+    await env.page.goto(`${origin}/early-overlay`);
+    const frames=await env.page.evaluate(()=>window.earlyFrames);
+    expect(frames).toHaveLength(5);
+    expect(frames.every(frame=>frame.ready==='loading')).toBe(true);
+    expect(frames.map(frame=>frame.display)).toEqual(Array(frames.length).fill('none'));
+    const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+    expect(env.errors).toEqual([]);
+  } finally {await env.close()}
 });
