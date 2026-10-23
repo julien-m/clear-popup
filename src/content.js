@@ -9,7 +9,7 @@
   const undone = new WeakSet();
   const locks = new Map();
   let toolbar, shadow, outlineStyle, highlighted, popupNotice;
-  let firstPopupNotified = false;
+  let firstPopupNotified = false, toolbarTimer = 0;
   const send = message => chrome.runtime.sendMessage(message).catch(() => ({ok: false}));
   const enabled = () => config.enabled && !config.exceptions.includes(host);
   function mainConfig() { window.dispatchEvent(new CustomEvent('clear-popup:config', {detail: {enabled: enabled() && config.basic}})); }
@@ -79,6 +79,14 @@
       if (values.length) locks.set(node, values);
     }
   }
+  function dismissToolbar() { clearTimeout(toolbarTimer); toolbarTimer = 0; toolbar?.remove(); toolbar = null; }
+  function scheduleToolbarDismiss() {
+    clearTimeout(toolbarTimer);
+    toolbarTimer = setTimeout(() => {
+      if (shadow?.activeElement || toolbar?.matches(':hover')) { scheduleToolbarDismiss(); return; }
+      dismissToolbar();
+    }, 5000);
+  }
   function controls() {
     if (toolbar || !document.documentElement) return;
     toolbar = document.createElement('div');
@@ -88,7 +96,9 @@
     const section = document.createElement('section'); section.setAttribute('aria-label', 'Clear Pop Up');
     const label = document.createElement('span'); label.textContent = 'Clear Pop Up · overlay masqué';
     const undo = document.createElement('button'); undo.textContent = 'Restaurer'; undo.addEventListener('click', () => { restoreLast(); });
-    const dismiss = document.createElement('button'); dismiss.textContent = 'Fermer'; dismiss.setAttribute('aria-label', 'Fermer la barre'); dismiss.addEventListener('click', () => { toolbar.remove(); toolbar = null; });
+    const dismiss = document.createElement('button'); dismiss.textContent = 'Fermer'; dismiss.setAttribute('aria-label', 'Fermer la barre'); dismiss.addEventListener('click', dismissToolbar);
+    toolbar.addEventListener('pointerleave', scheduleToolbarDismiss);
+    toolbar.addEventListener('focusout', scheduleToolbarDismiss);
     section.append(label, undo, dismiss); shadow.append(style, section); document.documentElement.append(toolbar);
   }
   function hide(node, reason) {
@@ -96,7 +106,7 @@
     const r = node.getBoundingClientRect(); if (!r.width || !r.height || getComputedStyle(node).display === 'none') return false;
     removed.set(node, {value: node.style.getPropertyValue('display'), priority: node.style.getPropertyPriority('display')});
     node.style.setProperty('display', 'none', 'important');
-    unlockScroll(); controls(); send({type: 'count', overlays: 1});
+    unlockScroll(); controls(); scheduleToolbarDismiss(); send({type: 'count', overlays: 1});
     if (reason === 'manual' && rememberPick) { const selector = selectorFor(node); if (selector) send({type: 'remember', selector}); }
     return true;
   }
@@ -106,7 +116,7 @@
     if (node.style.getPropertyValue('display') === 'none' && node.style.getPropertyPriority('display') === 'important') {
       if (value.value) node.style.setProperty('display', value.value, value.priority); else node.style.removeProperty('display');
     }
-    if (!removed.size) { restoreLocks(); toolbar?.remove(); toolbar = null; }
+    if (!removed.size) { restoreLocks(); dismissToolbar(); }
     send({type: 'undone'});
     return true;
   }
@@ -192,11 +202,15 @@
   }
   function clickPick(event) {
     if (withinOurs(event.target)) return;
-    event.preventDefault(); event.stopImmediatePropagation(); const node = event.target; stopPick(); hide(node, 'manual');
+    event.preventDefault(); event.stopImmediatePropagation(); const node = event.target;
+    if (!event.shiftKey) stopPick();
+    else { if (highlighted) highlighted.style.outline = outlineStyle; highlighted = null; }
+    hide(node, 'manual');
   }
   function keyPick(event) { if (event.key === 'Escape') { event.preventDefault(); stopPick(); } }
   chrome.runtime.onMessage.addListener((message, sender, reply) => {
     if (sender.id !== chrome.runtime.id) return;
+    if (message.type === 'apply-settings') { config = message.config; configReady = true; stopPick(); configure(); reply({ok: true}); return; }
     if (message.type === 'get-origin') { reply({host}); return; }
     if (message.type === 'blocked-popup') { firstPopup(message); reply({ok: true}); return; }
     if (message.type === 'undo') reply({ok: restoreLast()});
@@ -207,7 +221,7 @@
       document.addEventListener('pointerover', hoverPick, true); document.addEventListener('click', clickPick, true); document.addEventListener('keydown', keyPick, true); reply({ok: true});
     }
   });
-  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.settings) { config = changes.settings.newValue || config; stopPick(); configure(); } });
+  chrome.storage.onChanged.addListener((changes, area) => { if (area === 'local' && changes.settings) { config = changes.settings.newValue || config; if (!enabled()) stopPick(); configure(); } });
   window.addEventListener('clear-popup:advanced-ready', () => {
     if (globalThis.clearPopupAdvancedStart === true) { configReady = true; configure(); }
   });

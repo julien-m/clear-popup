@@ -26,8 +26,8 @@ for (const key of ['enabled','basic','advanced','exception']) $(key).addEventLis
   const config = structuredClone(state.config);
   if (key === 'exception') config.exceptions = $(key).checked ? [...new Set([...config.exceptions,state.host])] : config.exceptions.filter(host => host !== state.host);
   else config[key] = $(key).checked;
-  await call({type:'save', config}); state.config = config; render();
-  $('status').textContent = 'Enregistré. Rechargez la page pour appliquer les changements dès son ouverture.';
+  const result = await call({type:'save', config}); state.config = config; render();
+  $('status').textContent = result.reloadTabs ? `Enregistré. ${result.reloadTabs} onglet(s) n’ont pas pu être actualisés : rechargez-les.` : 'Enregistré et appliqué aux pages ouvertes.';
 }));
 for (const command of ['scan','pick','undo']) $(command).addEventListener('click', () => run(async () => {
   await call({type:'command', command, tabId:state.tabId, remember:$('remember').checked});

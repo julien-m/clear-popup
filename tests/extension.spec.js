@@ -291,3 +291,59 @@ test('dialogue visible sous un parent visibility hidden préservé après clic',
   const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('0');
  }finally{await env.close()}
 });
+
+
+test('site autorisé au chargement : réactiver puis désactiver sans recharger, iframe et compteur sans doublon',async()=>{
+ const env=await setup();
+ try {
+  let panel=await env.panel();await panel.locator('#exception').check();await expect(panel.locator('#status')).toContainText('Enregistré');await panel.close();
+  await env.page.reload();
+  await env.page.evaluate(url=>{const f=document.createElement('iframe');f.src=url;document.body.append(f)},origin);
+  await expect.poll(()=>env.page.frames().length).toBe(2);const frame=env.page.frames().find(f=>f.parentFrame());await frame.waitForLoadState();
+  const documentToken=await env.page.evaluate(()=>window.liveDocumentToken=crypto.randomUUID());
+  panel=await env.panel();await panel.locator('#exception').uncheck();await expect(panel.locator('#status')).toContainText('Enregistré');
+  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
+  expect(await frame.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
+  await expect(panel.locator('#popups')).toHaveText('2');
+  await panel.locator('#exception').check();await expect(panel.locator('#status')).toContainText('Enregistré');
+  const opened=env.context.waitForEvent('page');expect(await env.page.evaluate(()=>window.open('/target','_blank')!==null)).toBe(true);await(await opened).close();
+  await panel.locator('#exception').uncheck();await expect(panel.locator('#status')).toContainText('Enregistré');
+  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);await expect(panel.locator('#popups')).toHaveText('3');
+  await panel.locator('#basic').uncheck();await expect(panel.locator('#status')).toContainText('Enregistré');
+  const basicOpen=env.context.waitForEvent('page');expect(await env.page.evaluate(()=>window.open('/target','_blank')!==null)).toBe(true);await(await basicOpen).close();
+  await panel.locator('#basic').check();await expect(panel.locator('#status')).toContainText('Enregistré');
+  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);await expect(panel.locator('#popups')).toHaveText('4');
+  expect(await env.page.evaluate(()=>window.liveDocumentToken)).toBe(documentToken);expect(env.errors).toEqual([]);
+ }finally{await env.close()}
+});
+
+
+test('sélection multiple avec Maj, mémorisation, clic simple et Échap',async()=>{
+ const env=await setup();
+ try {
+  await env.page.evaluate(()=>{for(let i=0;i<4;i++){const n=document.createElement('p');n.id=`pick-item-${i}`;n.textContent=`Selectable item ${i}`;document.body.append(n)}});
+  let panel=await env.panel();await panel.locator('#remember').check();await panel.locator('#pick').click();
+  await env.page.locator('#pick-item-0').click({modifiers:['Shift']});await expect(env.page.locator('#pick-item-0')).toBeHidden();
+  await expect.poll(()=>env.worker.evaluate(()=>chrome.storage.local.get('settings').then(x=>x.settings.rules.localhost))).toContain('#pick-item-0');
+  await env.page.locator('#pick-item-1').click({modifiers:['Shift']});await expect(env.page.locator('#pick-item-1')).toBeHidden();
+  await expect.poll(()=>env.worker.evaluate(()=>chrome.storage.local.get('settings').then(x=>x.settings.rules.localhost))).toContain('#pick-item-1');
+  await env.page.keyboard.press('Escape');await env.page.locator('#pick-item-2').click();await expect(env.page.locator('#pick-item-2')).toBeVisible();
+  panel=await env.panel();await panel.locator('#pick').click();
+  await env.page.locator('#pick-item-2').click();await expect(env.page.locator('#pick-item-2')).toBeHidden();
+  await env.page.locator('#pick-item-3').click();await expect(env.page.locator('#pick-item-3')).toBeVisible();
+  panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('3');
+  expect(env.errors).toEqual([]);
+ }finally{await env.close()}
+});
+
+
+test('barre overlay temporaire, restauration disponible après disparition',async()=>{
+ const env=await setup();
+ try {
+  await overlay(env.page);await expect(env.page.locator('[data-clear-popup-ui]')).toBeVisible();
+  await expect(env.page.locator('[data-clear-popup-ui]')).toHaveCount(0,{timeout:7000});
+  await expect(env.page.locator('#test-overlay')).toBeHidden();
+  const panel=await env.panel();await panel.locator('#undo').click();await expect(env.page.locator('#test-overlay')).toBeVisible();
+  await expect(panel.locator('#overlays')).toHaveText('1');expect(env.errors).toEqual([]);
+ }finally{await env.close()}
+});

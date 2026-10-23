@@ -1,6 +1,6 @@
 {
   "name": "clear-popup",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "type": "module",
   "description": "Blocage local de pop-up et overlays, sans collecte",

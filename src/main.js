@@ -1,9 +1,12 @@
 (() => {
   'use strict';
+  const installed = Symbol.for('clear-popup:main-installed');
+  if (window[installed]) { window.dispatchEvent(new CustomEvent('clear-popup:ready')); return; }
+  window[installed] = true;
   // Original implementation. This world is shared with the page, not a security boundary.
   const nativeOpen = window.open;
   const nativeSubmit = HTMLFormElement.prototype.submit;
-  let enabled = true;
+  let enabled = false;
   let lastGesture = -Infinity;
   let suspiciousGesture = false;
   const configEvent = 'clear-popup:config';

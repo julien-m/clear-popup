@@ -1,6 +1,6 @@
 # Confidentialité
 
-Clear Pop Up 0.1.3 n'envoie aucune donnée et ne contacte aucun serveur.
+Clear Pop Up 0.1.4 n'envoie aucune donnée et ne contacte aucun serveur.
 
 Le DOM de la page est examiné localement pour reconnaître les couches gênantes. Aucun texte de page, conversation, achat, URL complète, historique ou identifiant de suivi n'est conservé par l'extension.
 

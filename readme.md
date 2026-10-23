@@ -1,10 +1,10 @@
 # Clear Pop Up
 
-Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.3, à tester sur vos sites.
+Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.4, à tester sur vos sites.
 
 ## Installation Chrome
 
-1. Décompressez `clear-popup-0.1.3.zip`.
+1. Décompressez `clear-popup-0.1.4.zip`.
 2. Ouvrez `chrome://extensions` et activez **Mode développeur**.
 3. Cliquez **Charger l'extension non empaquetée**, puis sélectionnez le dossier `clear-popup` contenant le manifeste.
 4. Épinglez Clear Pop Up. Désactivez l'ancien bloqueur de pop-up pendant les essais pour éviter les interférences. Rechargez les onglets ouverts.
@@ -13,16 +13,16 @@ Le même dossier est chargeable dans Comet. Le paquet n'est pas publié sur le C
 
 ## Fonctionnement
 
-- **Premier pop-up bloqué** : petit message en haut à droite, sous la barre du navigateur, une seule fois par chargement. « Garder bloqué » ferme le message sans changer vos réglages. « Autoriser ce site » ajoute l’hôte affiché aux exceptions de protection (pop-up et overlays), puis propose un bouton de rechargement distinct. La fenêtre refusée n’est jamais rejouée automatiquement. Un refus dans une iframe est signalé dans la page principale avec son hôte; l’exception vise cette origine précise.
+- **Premier pop-up bloqué** : petit message en haut à droite, sous la barre du navigateur, une seule fois par chargement. « Garder bloqué » ferme le message sans changer vos réglages. « Autoriser ce site » ajoute l’hôte affiché aux exceptions de protection (pop-up et overlays), applique le réglage aux pages ouvertes, puis propose un bouton de rechargement distinct pour relancer le scénario du site. La fenêtre refusée n’est jamais rejouée automatiquement. Un refus dans une iframe est signalé dans la page principale avec son hôte; l’exception vise cette origine précise.
 
 - **Pop-up classiques** : interception de `window.open`, des liens ciblant une nouvelle fenêtre et des formulaires. Une activation réelle récente est nécessaire. Les liens ordinaires et les fenêtres ouvertes directement par un vrai clic restent utilisables. Le refus renvoie `null`, comme un bloqueur natif; aucun faux objet fenêtre.
 - **Voile vide** : retrait des voiles plein écran qui interceptent les clics alors que leurs enfants sont déjà masqués, par exemple par un filtre cosmétique. Les dialogues demandés dont le contenu reste visible sont préservés.
 - **État du site** : le panneau distingue protection active, site autorisé (gris) et protection désactivée. Les cases générales restent les préférences globales; les exceptions ont priorité. Une exception Clear Pop Up ne modifie ni le bloqueur natif de Chrome ni les autres extensions.
 - **Overlays** : analyse locale de trois points du viewport et de huit ancêtres maximum par point; géométrie, positionnement, priorité et rôle de dialogue. Pas de scan intégral permanent, ni de boucle de polling. Les mutations DOM sont traitées avant le rendu, sans temporisation de 120 ms ni attente de DOMContentLoaded. Les onglets masqués ne sont pas analysés. Un bootstrap isolé, enregistré seulement pour les hôtes protégés, active les heuristiques dès document_start; les règles CSS mémorisées suivent le chargement des réglages locaux. Les exceptions et la désactivation sont respectées dès l’enregistrement.
 - **Prudence** : les interfaces focalisées et celles apparaissant dans les 1,8 seconde suivant une interaction sont conservées. Le bouton de recherche manuelle contourne cette temporisation.
-- **Choix manuel** : sélectionnez un élément; Échap annule. Mémorisation facultative d'un sélecteur CSS unique par hôte, pas du texte de l'élément.
-- **Restauration** : barre dans la page ou bouton dans l'extension. Le dernier élément revient avec son style précédent. Après restauration, ce même élément est ignoré jusqu'au rechargement. Désactiver les overlays restaure les éléments masqués.
-- **Exceptions** : nom d'hôte exact. `example.com` n'autorise pas `example.com.evil`, ni automatiquement `sub.example.com`. Les iframes sont traitées selon leur propre origine. Rechargez après une modification pour l'appliquer dès `document_start`.
+- **Choix manuel** : sélectionnez un élément; Maj + clic maintient le mode actif pour en masquer plusieurs. Un clic sans Maj termine la sélection; Échap quitte sans masquer d’autre élément. Mémorisation facultative d'un sélecteur CSS unique par hôte, pas du texte de l'élément.
+- **Restauration** : barre dans la page ou bouton dans l'extension. La barre disparaît après 5 secondes sans interaction; la restauration reste disponible depuis l’icône. Le dernier élément revient avec son style précédent. Après restauration, ce même élément est ignoré jusqu'au rechargement. Désactiver les overlays restaure les éléments masqués.
+- **Exceptions** : nom d'hôte exact. `example.com` n'autorise pas `example.com.evil`, ni automatiquement `sub.example.com`. Les iframes sont traitées selon leur propre origine. Les changements sont appliqués aux pages ouvertes, y compris si le script de blocage était absent au chargement. Les onglets fermés, restreints ou dont le contexte d’extension est périmé sont signalés comme nécessitant un rechargement.
 - **Compteurs** : tentatives bloquées et éléments masqués, pas nombre de publicités ou de sites. Ils sont remis à zéro au chargement principal, gardés dans `storage.session`, supprimés avec l'onglet. Ils ne constituent pas un historique.
 
 ## Permissions et données

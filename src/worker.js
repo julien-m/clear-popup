@@ -18,6 +18,22 @@ async function registration(config) {
     else await chrome.scripting.registerContentScripts([spec]);
   }
 }
+async function applyOpenTabs(config) {
+  const tabs = await chrome.tabs.query({});
+  const results = await Promise.all(tabs.filter(tab => hostname(tab.url)).map(async tab => {
+    try {
+      const applied = await chrome.tabs.sendMessage(tab.id, {type: 'apply-settings', config});
+      if (!applied?.ok) return false;
+      if (config.enabled && config.basic) {
+        // Existing allowed pages never received MAIN at document_start. Install
+        // it now; its ready handshake takes each frame's current configuration.
+        await chrome.scripting.executeScript({target: {tabId: tab.id, allFrames: true}, files: ['main.js'], world: 'MAIN'});
+      }
+      return true;
+    } catch { return false; } // Closed tabs or old extension contexts need a reload.
+  }));
+  return results.filter(ok => !ok).length;
+}
 async function count(tabId, change, sender) {
   const key = `tab-${tabId}`;
   const old = (await chrome.storage.session.get(key))[key] || {popups: 0, overlays: 0};
@@ -55,7 +71,8 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
         if (!normalized.exceptions.includes(host)) return {ok: false};
         await registration(normalized);
         await chrome.storage.local.set({settings: normalized});
-        return {ok: true, host};
+        const reloadTabs = await applyOpenTabs(normalized);
+        return {ok: true, host, reloadTabs};
       }
       if (message.type === 'count') { await count(sender.tab.id, message, sender); return {ok: true}; }
       if (message.type === 'undone') {
@@ -84,7 +101,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     }
     if (message.type === 'save') {
       const config = normalize(message.config); await chrome.storage.local.set({settings: config}); await registration(config);
-      return {ok: true};
+      return {ok: true, reloadTabs: await applyOpenTabs(config)};
     }
     if (message.type === 'command' && Number.isInteger(message.tabId) && ['pick', 'undo', 'scan'].includes(message.command)) {
       let target = {frameId: 0};
@@ -97,7 +114,7 @@ chrome.runtime.onMessage.addListener((message, sender, reply) => {
     }
     if (message.type === 'erase') {
       const config = await settings(); config.rules = {}; config.exceptions = [];
-      await chrome.storage.local.set({settings: config}); await registration(config); return {ok: true};
+      await chrome.storage.local.set({settings: config}); await registration(config); return {ok: true, reloadTabs: await applyOpenTabs(config)};
     }
     return {ok: false};
   };
