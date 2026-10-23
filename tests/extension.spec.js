@@ -93,7 +93,11 @@ test('dialogue demandé et bandeau fixe préservés', async () => {
 test('exception sur hôte exact, configuration persistante sans URL ni historique', async () => {
   const env=await setup();
   try {
-    const panel=await env.panel(); await panel.locator('#exception').check(); await expect(panel.locator('#status')).toContainText('Enregistré'); await panel.close();
+    const panel=await env.panel(); await panel.locator('#exception').check(); await expect(panel.locator('#status')).toContainText('Enregistré');
+    await expect(panel.locator('#protection-state')).toHaveText('Autorisé sur ce site');
+    await expect(panel.locator('.summary')).toHaveAttribute('data-protection','allowed');
+    if(process.env.CLEAR_POPUP_ALLOWED_PROOF_PATH) await panel.locator('body').screenshot({path:process.env.CLEAR_POPUP_ALLOWED_PROOF_PATH});
+    await panel.close();
     await env.page.reload();
     const opened=env.context.waitForEvent('page'); const accepted=await env.page.evaluate(()=>window.open('/target','_blank')!==null); expect(accepted).toBe(true); const popup=await opened; await popup.close();
     await overlay(env.page); await expect(env.page.locator('#test-overlay')).toBeVisible();
@@ -249,4 +253,41 @@ test('refus dans une iframe : notification principale et exception limitée à l
     expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
     expect(env.errors).toEqual([]);
   } finally {await env.close()}
+});
+
+
+test('voile plein écran dont le contenu est masqué : retrait même après clic, interaction restaurée', async()=>{
+ const env=await setup();
+ try {
+   await env.page.evaluate(()=>{
+     const button=document.createElement('button');button.id='show-floating';button.textContent='Show a floating popup';
+     const veil=document.createElement('div');veil.id='floating-backdrop';veil.className='overlay-demo';veil.hidden=true;
+     veil.style='position:fixed;inset:0;z-index:60;background:#14243873;display:flex;align-items:center;justify-content:center';
+     const card=document.createElement('div');card.style='display:none!important';card.textContent='Already hidden by a cosmetic filter';veil.append(card);
+     document.head.insertAdjacentHTML('beforeend','<style>html{scrollbar-gutter:stable}body{min-height:200vh}[hidden]{display:none!important}</style>');
+     button.onclick=()=>{document.body.style.overflow='hidden';veil.hidden=false};document.body.append(button,veil);
+   });
+   await env.page.locator('#show-floating').click();
+   await expect(env.page.locator('#floating-backdrop')).toBeHidden();
+   expect(await env.page.evaluate(()=>getComputedStyle(document.body).overflowY)).toBe('auto');
+   await env.page.locator('#dialog').click();await expect(env.page.locator('#consentless')).toBeVisible();
+   const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+ } finally {await env.close()}
+});
+
+
+test('dialogue visible sous un parent visibility hidden préservé après clic',async()=>{
+ const env=await setup();
+ try {
+  await env.page.evaluate(()=>{
+   const b=document.createElement('button');b.id='requested-dialog';b.textContent='Open';b.onclick=()=>{
+    const veil=document.createElement('div');veil.id='requested-overlay';veil.style='position:fixed;inset:0;z-index:60';
+    const wrapper=document.createElement('div');wrapper.style.visibility='hidden';
+    const dialog=document.createElement('section');dialog.setAttribute('role','dialog');dialog.textContent='Visible requested dialog';dialog.style='visibility:visible;background:white;padding:40px';
+    wrapper.append(dialog);veil.append(wrapper);document.body.append(veil);
+   };document.body.append(b);
+  });
+  await env.page.locator('#requested-dialog').click();await expect(env.page.getByRole('dialog')).toBeVisible();
+  const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('0');
+ }finally{await env.close()}
 });

@@ -34,7 +34,7 @@
     const box = document.createElement('section'); box.setAttribute('aria-label', 'Pop-up bloqué par Clear Pop Up'); box.setAttribute('role', 'region');
     const heading = document.createElement('strong'); heading.textContent = 'Clear Pop Up · Pop-up bloqué';
     const text = document.createElement('p'); text.setAttribute('role', 'status'); text.textContent = `Une fenêtre a été bloquée sur ${blockedHost}.`;
-    const hint = document.createElement('small'); hint.textContent = 'Autoriser ce site le place dans les exceptions de protection. Aucune fenêtre ne sera rouverte automatiquement.';
+    const hint = document.createElement('small'); hint.textContent = 'Exception pour Clear Pop Up uniquement. Chrome et les autres bloqueurs restent indépendants. Aucune fenêtre ne sera rouverte automatiquement.';
     const actions = document.createElement('div');
     const allow = document.createElement('button'); allow.textContent = 'Autoriser ce site';
     const keep = document.createElement('button'); keep.textContent = 'Garder bloqué';
@@ -117,11 +117,30 @@
     const selector = `${node.tagName.toLowerCase()}${classes.map(c => `.${CSS.escape(c)}`).join('')}`;
     return document.querySelectorAll(selector).length === 1 ? selector : null;
   }
+  function orphanBackdrop(node, style, rect) {
+    if (style.position !== 'fixed' || style.pointerEvents === 'none' || style.backgroundImage !== 'none' || Number.parseInt(style.zIndex, 10) < 1) return false;
+    const width = document.documentElement.clientWidth, height = document.documentElement.clientHeight;
+    if (rect.width < width * .9 || rect.height < height * .9 || rect.left > width * .05 || rect.top > height * .05 || rect.right < width * .95 || rect.bottom < height * .95) return false;
+    if (!/(^|[-_\s])(overlay|backdrop|modal|lightbox)([-_\s]|$)/i.test(`${node.id} ${node.className}`)) return false;
+    if (!node.children.length || node.childNodes.length > 20) return false;
+    if ([...node.childNodes].some(child => child.nodeType === Node.TEXT_NODE && child.textContent.trim())) return false;
+    for (const pseudo of ['::before', '::after']) {
+      const content = getComputedStyle(node, pseudo).content;
+      if (!['none', 'normal', '""'].includes(content)) return false;
+    }
+    return [...node.children].every(child => {
+      const s = getComputedStyle(child);
+      return s.display === 'none' || Number(s.opacity) === 0;
+    });
+  }
   function isIntrusive(node, force) {
     if (!(node instanceof HTMLElement) || withinOurs(node) || undone.has(node) || removed.has(node)) return false;
     const s = getComputedStyle(node), r = node.getBoundingClientRect();
     if (!['fixed', 'absolute'].includes(s.position) && node.tagName !== 'DIALOG') return false;
     if (s.visibility !== 'visible' || s.display === 'none' || Number(s.opacity) === 0 || r.width < 100 || r.height < 100) return false;
+    // A cosmetic filter can hide the card but leave its blocking backdrop.
+    // Removing that empty shell is safe even immediately after a user click.
+    if (orphanBackdrop(node, s, r)) return true;
     if (!force && performance.now() - lastInteraction < 1800) return false;
     if (!force && (node.matches('[role="alert"],[role="alertdialog"]') || node.contains(document.activeElement) && document.activeElement !== document.body)) return false;
     const area = r.width * r.height / (innerWidth * innerHeight);
@@ -159,7 +178,7 @@
     if (!enabled() || !config.advanced) { while (removed.size) restoreLast(); return; }
     // Watch the Document even before <html> exists; do not wait for DOMContentLoaded.
     active = !!document.documentElement;
-    observer.observe(document, {subtree: true, childList: true, attributes: true, attributeFilter: ['class','style','open','aria-modal']});
+    observer.observe(document, {subtree: true, childList: true, attributes: true, attributeFilter: ['class','style','open','hidden','aria-modal']});
     scan();
   }
   function stopPick() {

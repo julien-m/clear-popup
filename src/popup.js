@@ -8,9 +8,14 @@ async function call(message) {
 function counts(value) { $('popups').textContent = value.popups; $('overlays').textContent = value.overlays; }
 function render() {
   for (const key of ['enabled','basic','advanced']) $(key).checked = state.config[key];
-  $('exception').checked = state.config.exceptions.includes(state.host);
+  const allowed = state.config.exceptions.includes(state.host);
+  const protecting = state.config.enabled && !allowed && (state.config.basic || state.config.advanced);
+  $('exception').checked = allowed;
+  $('protection-state').textContent = !state.host ? 'Page non prise en charge' : allowed ? 'Autorisé sur ce site' : protecting ? 'Protection active sur ce site' : 'Protection désactivée';
+  document.querySelector('.summary').dataset.protection = protecting ? 'active' : allowed ? 'allowed' : 'off';
   $('host').textContent = state.host || 'Page non prise en charge'; counts(state.counts);
   for (const key of ['exception','pick','undo','scan']) $(key).disabled = !state.host;
+  for (const key of ['pick','scan']) $(key).disabled = !state.host || !protecting;
   $('data-summary').textContent = `${state.config.exceptions.length} exception(s), ${Object.values(state.config.rules).reduce((n, rules) => n + rules.length, 0)} choix mémorisé(s).`;
 }
 async function run(fn) {

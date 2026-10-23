@@ -1,10 +1,10 @@
 # Clear Pop Up
 
-Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.2, à tester sur vos sites.
+Extension Chrome Manifest V3, entièrement locale, pour bloquer les fenêtres non sollicitées et masquer des overlays. Version initiale 0.1.3, à tester sur vos sites.
 
 ## Installation Chrome
 
-1. Décompressez `clear-popup-0.1.2.zip`.
+1. Décompressez `clear-popup-0.1.3.zip`.
 2. Ouvrez `chrome://extensions` et activez **Mode développeur**.
 3. Cliquez **Charger l'extension non empaquetée**, puis sélectionnez le dossier `clear-popup` contenant le manifeste.
 4. Épinglez Clear Pop Up. Désactivez l'ancien bloqueur de pop-up pendant les essais pour éviter les interférences. Rechargez les onglets ouverts.
@@ -16,6 +16,8 @@ Le même dossier est chargeable dans Comet. Le paquet n'est pas publié sur le C
 - **Premier pop-up bloqué** : petit message en haut à droite, sous la barre du navigateur, une seule fois par chargement. « Garder bloqué » ferme le message sans changer vos réglages. « Autoriser ce site » ajoute l’hôte affiché aux exceptions de protection (pop-up et overlays), puis propose un bouton de rechargement distinct. La fenêtre refusée n’est jamais rejouée automatiquement. Un refus dans une iframe est signalé dans la page principale avec son hôte; l’exception vise cette origine précise.
 
 - **Pop-up classiques** : interception de `window.open`, des liens ciblant une nouvelle fenêtre et des formulaires. Une activation réelle récente est nécessaire. Les liens ordinaires et les fenêtres ouvertes directement par un vrai clic restent utilisables. Le refus renvoie `null`, comme un bloqueur natif; aucun faux objet fenêtre.
+- **Voile vide** : retrait des voiles plein écran qui interceptent les clics alors que leurs enfants sont déjà masqués, par exemple par un filtre cosmétique. Les dialogues demandés dont le contenu reste visible sont préservés.
+- **État du site** : le panneau distingue protection active, site autorisé (gris) et protection désactivée. Les cases générales restent les préférences globales; les exceptions ont priorité. Une exception Clear Pop Up ne modifie ni le bloqueur natif de Chrome ni les autres extensions.
 - **Overlays** : analyse locale de trois points du viewport et de huit ancêtres maximum par point; géométrie, positionnement, priorité et rôle de dialogue. Pas de scan intégral permanent, ni de boucle de polling. Les mutations DOM sont traitées avant le rendu, sans temporisation de 120 ms ni attente de DOMContentLoaded. Les onglets masqués ne sont pas analysés. Un bootstrap isolé, enregistré seulement pour les hôtes protégés, active les heuristiques dès document_start; les règles CSS mémorisées suivent le chargement des réglages locaux. Les exceptions et la désactivation sont respectées dès l’enregistrement.
 - **Prudence** : les interfaces focalisées et celles apparaissant dans les 1,8 seconde suivant une interaction sont conservées. Le bouton de recherche manuelle contourne cette temporisation.
 - **Choix manuel** : sélectionnez un élément; Échap annule. Mémorisation facultative d'un sélecteur CSS unique par hôte, pas du texte de l'élément.
