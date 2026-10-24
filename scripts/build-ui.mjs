@@ -1,7 +1,12 @@
 import {readFile, writeFile, mkdir, copyFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {validateExtension} from './validate-i18n.mjs';
+import assert from 'node:assert/strict';
 const root = fileURLToPath(new URL('../', import.meta.url));
+const catalogState = await validateExtension(`${root}src`);
+const localeRegistry = JSON.parse(await readFile(`${root}ui/locales.json`, 'utf8'));
+assert.deepEqual([...catalogState.locales].sort(), [...localeRegistry.locales].sort(), 'Only approved locales may be bundled');
 execFileSync(process.execPath, [`${root}node_modules/@tailwindcss/cli/dist/index.mjs`, '-i', 'ui/popup.css', '-o', 'src/popup.css', '--minify'], {cwd: root, timeout: 30000, stdio: 'inherit'});
 const tokens = await readFile(`${root}ui/clear-theme.css`, 'utf8');
 const notices = await readFile(`${root}ui/notices.css`, 'utf8');

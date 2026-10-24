@@ -1,6 +1,6 @@
 import {test, expect, chromium} from '@playwright/test';
 import {createServer} from 'node:http';
-import {mkdtemp,rm} from 'node:fs/promises';
+import {mkdtemp,rm,readFile,writeFile,cp} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 let server, origin;
@@ -22,28 +22,38 @@ test.beforeAll(async () => {
   origin = `http://localhost:${server.address().port}`;
 });
 test.afterAll(async () => { server.closeAllConnections(); await new Promise(resolve => server.close(resolve)); });
-async function setup() {
+async function setup(locale = 'en', extensionPath = resolve('src')) {
   const profile = await mkdtemp(join(tmpdir(),'clear-popup-test-'));
-  const context = await chromium.launchPersistentContext(profile,{channel:'chromium',headless:true,viewport:{width:1100,height:800},args:[`--disable-extensions-except=${resolve('src')}`,`--load-extension=${resolve('src')}`]});
+  const platformOptions = process.platform === 'darwin'
+    ? {executablePath:resolve('tests/fixtures/chromium-language-launcher.mjs'),env:{...process.env,CLEAR_TEST_CHROMIUM_BINARY:chromium.executablePath(),CLEAR_TEST_UI_LANGUAGE:locale}}
+    : {channel:'chromium',env:{...process.env,LANGUAGE:locale,LC_ALL:locale.replace('-', '_') + '.UTF-8'}};
+  const context = await chromium.launchPersistentContext(profile,{...platformOptions,headless:true,timeout:10000,locale,viewport:{width:1100,height:800},args:[`--lang=${locale}`,`--disable-extensions-except=${extensionPath}`,`--load-extension=${extensionPath}`]});
   context.setDefaultTimeout(5000);
   const requests = [], errors = [];
-  context.on('request', request => { if (/^https?:/.test(request.url()) && !['localhost','127.0.0.1'].includes(new URL(request.url()).hostname)) requests.push(request.url()); });
   context.on('page', page => {
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error' && /Content Security Policy/i.test(message.text())) errors.push(message.text()); });
   });
   let worker = context.serviceWorkers()[0] || await context.waitForEvent('serviceworker');
   const extensionId = new URL(worker.url()).host;
+  const nativeLocale = await worker.evaluate(() => chrome.i18n.getUILanguage());
   try {
+    expect(nativeLocale.toLowerCase()).toMatch(new RegExp(`^${locale.toLowerCase()}(?:-|$)`));
     await expect.poll(() => worker.evaluate(() => chrome.scripting.getRegisteredContentScripts().then(s => s.length))).toBe(2);
   } catch(error) {
     const state=await worker.evaluate(async()=>({settings:await chrome.storage.local.get(null),scripts:await chrome.scripting.getRegisteredContentScripts()}));
     await context.close();await rm(profile,{recursive:true,force:true});
     throw new Error(`${error.message}\nExtension startup state: ${JSON.stringify(state)}`);
   }
-  const page = await context.newPage(); await page.goto(origin);
+  const startupPages = context.pages();
+  const page = await context.newPage();
+  // Each profile is disposable: remove launch-only targets before testing open-tab updates.
+  for (const startup of startupPages) await startup.close();
+  // Observe scenario traffic only after disposable launch targets have closed.
+  context.on('request', request => { if (/^https?:/.test(request.url()) && !['localhost','127.0.0.1'].includes(new URL(request.url()).hostname)) requests.push(request.url()); });
+  await page.goto(origin);
   async function panel() { const panel = await context.newPage(); await page.bringToFront(); await panel.goto(`chrome-extension://${extensionId}/popup.html`); await expect(panel.locator('#host')).toHaveText(new URL(page.url()).hostname); return panel; }
-  return {context,page,panel,worker,requests,errors,async close(){ await context.close(); await rm(profile,{recursive:true,force:true}); }};
+  return {context,page,panel,worker,requests,errors,nativeLocale,async close(){ await context.close(); await rm(profile,{recursive:true,force:true}); }};
 }
 async function overlay(page, id='test-overlay') {
   await page.evaluate(id => {document.body.style.overflow='hidden';const n=document.createElement('div');n.id=id;n.className='overlay';n.innerHTML='<div class="card"><h2>Unsolicited promotion</h2><p>Page content is behind this layer.</p></div>';document.body.append(n);},id);
@@ -54,7 +64,7 @@ test('automatic windows, synthetic links and forms are blocked with accurate cou
   try {
     const result = await env.page.evaluate(() => window.open('/target','_blank') === null); expect(result).toBe(true);
     await env.page.evaluate(() => { const a=document.createElement('a');a.href='/target';a.target='_blank';document.body.append(a);a.click(); const form=document.createElement('form');form.action='/target';form.target='_blank';document.body.append(form);form.submit(); const base=document.createElement('base');base.target='_blank';document.head.append(base);const inherited=document.createElement('form');inherited.action='/target';document.body.append(inherited);inherited.submit(); });
-    const panel = await env.panel(); await expect(panel.locator('#popups')).toHaveText('4');
+    const panel = await env.panel(); await expect(panel.locator('#popups')).toHaveText('4 pop-ups blocked');
     expect(env.context.pages().filter(p=>p.url().endsWith('/target'))).toHaveLength(0);
     expect(env.requests).toEqual([]); expect(env.errors).toEqual([]);
   } finally { await env.close(); }
@@ -65,7 +75,7 @@ test('requested clicks and target blank links are allowed without false counts',
   try {
     let opened = env.context.waitForEvent('page'); await env.page.locator('#legit').click(); let popup = await opened; await popup.waitForLoadState(); expect(popup.url()).toBe(`${origin}/target`); await popup.close();
     opened=env.context.waitForEvent('page'); await env.page.locator('#link').click(); popup=await opened; await popup.waitForLoadState(); expect(popup.url()).toBe(`${origin}/target`); await popup.close();
-    const panel=await env.panel(); await expect(panel.locator('#popups')).toHaveText('0'); expect(env.errors).toEqual([]);
+    const panel=await env.panel(); await expect(panel.locator('#popups')).toHaveText('0 pop-ups blocked'); expect(env.errors).toEqual([]);
   } finally { await env.close(); }
 });
 
@@ -74,11 +84,11 @@ test('automatic overlays hidden, scrolling restored, undo prevents hiding again'
   try {
     await overlay(env.page); await expect(env.page.locator('#test-overlay')).toBeHidden();
     expect(await env.page.evaluate(()=>getComputedStyle(document.body).overflowY)).toBe('auto');
-    const panel=await env.panel(); await expect(panel.locator('#overlays')).toHaveText('1');
+    const panel=await env.panel(); await expect(panel.locator('#overlays')).toHaveText('1 overlay hidden');
     await panel.locator('#undo').click(); await expect(env.page.locator('#test-overlay')).toBeVisible();
     expect(await env.page.evaluate(()=>getComputedStyle(document.body).overflowY)).toBe('hidden');
     await panel.locator('#scan').click(); await expect(env.page.locator('#test-overlay')).toBeVisible();
-    await expect(panel.locator('#overlays')).toHaveText('1');
+    await expect(panel.locator('#overlays')).toHaveText('1 overlay hidden');
     await panel.locator('body').screenshot({path:process.env.CLEAR_POPUP_PROOF_PATH || test.info().outputPath('popup.png')});
     expect(env.requests).toEqual([]); expect(env.errors).toEqual([]);
   } finally { await env.close(); }
@@ -89,7 +99,7 @@ test('requested dialog and fixed navigation are preserved', async () => {
   try {
     await env.page.locator('#dialog').click(); await expect(env.page.locator('#consentless')).toBeVisible();
     await env.page.evaluate(()=>{const n=document.createElement('nav');n.id='sticky';n.style='position:fixed;top:0;left:0;right:0;height:60px;z-index:2000;background:white';n.textContent='Menu du site';document.body.append(n)});
-    const panel=await env.panel(); await expect(panel.locator('#overlays')).toHaveText('0'); await expect(env.page.locator('#sticky')).toBeVisible();
+    const panel=await env.panel(); await expect(panel.locator('#overlays')).toHaveText('0 overlays hidden'); await expect(env.page.locator('#sticky')).toBeVisible();
   } finally { await env.close(); }
 });
 
@@ -134,7 +144,7 @@ test('global disable, independent basic and advanced settings, reset counters', 
     await overlay(env.page); await expect(env.page.locator('#test-overlay')).toBeHidden();
     panel=await env.panel(); await panel.locator('#advanced').uncheck(); await expect(panel.locator('#status')).toContainText('Saved'); await expect(env.page.locator('#test-overlay')).toBeVisible();
     await panel.locator('#basic').check(); await expect(panel.locator('#status')).toContainText('Saved'); await panel.locator('#enabled').uncheck(); await expect(panel.locator('#status')).toContainText('Saved'); await panel.close();
-    await env.page.reload(); panel=await env.panel(); await expect(panel.locator('#overlays')).toHaveText('0'); await expect(panel.locator('#popups')).toHaveText('0');
+    await env.page.reload(); panel=await env.panel(); await expect(panel.locator('#overlays')).toHaveText('0 overlays hidden'); await expect(panel.locator('#popups')).toHaveText('0 pop-ups blocked');
     expect(await env.worker.evaluate(()=>chrome.scripting.getRegisteredContentScripts())).toEqual([]); expect(env.requests).toEqual([]);
   } finally { await env.close(); }
 });
@@ -150,7 +160,7 @@ test('iframe and full-screen trap blocked before window creation', async () => {
     const panel=await env.panel(); await panel.locator('#undo').click(); await expect(frame.locator('#iframe-overlay')).toBeVisible();
     await panel.locator('#advanced').uncheck(); await expect(panel.locator('#status')).toContainText('Saved'); await panel.close();
     await env.page.evaluate(()=>{const n=document.createElement('div');n.id='trap';n.style='position:fixed;inset:0;z-index:5000';n.onclick=()=>window.open('/target','_blank');document.body.append(n)});
-    await env.page.locator('#trap').click(); const state=await env.panel(); await expect(state.locator('#popups')).toHaveText('2');
+    await env.page.locator('#trap').click(); const state=await env.panel(); await expect(state.locator('#popups')).toHaveText('2 pop-ups blocked');
     expect(env.context.pages().filter(page=>page.url().endsWith('/target'))).toHaveLength(0); expect(env.errors).toEqual([]);
   } finally { await env.close(); }
 });
@@ -167,7 +177,7 @@ test('overlay hidden before first paint and counted once', async () => {
       });
     }));
     expect(frames.filter(display=>display!=='none'), 'No rendered frame should contain the overlay').toEqual([]);
-    const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+    const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1 overlay hidden');
     await panel.locator('#undo').click();await expect(env.page.locator('#prepaint-overlay')).toBeVisible();
     expect(env.errors).toEqual([]);
   } finally {await env.close()}
@@ -182,29 +192,36 @@ test('overlay detected during loading before DOMContentLoaded', async () => {
     expect(frames).toHaveLength(5);
     expect(frames.every(frame=>frame.ready==='loading')).toBe(true);
     expect(frames.map(frame=>frame.display)).toEqual(Array(frames.length).fill('none'));
-    const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+    const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1 overlay hidden');
     expect(env.errors).toEqual([]);
   } finally {await env.close()}
 });
 
 // Accessibility observes the closed shadow tree without exposing it to page scripts.
-async function noticeAX(page, action) {
+async function noticeAX(page, action, regionName = 'Pop-up blocked by Clear Pop Up') {
   const cdp=await page.context().newCDPSession(page);
   try {
     const {nodes}=await cdp.send('Accessibility.getFullAXTree');
-    const region=nodes.find(n=>n.role?.value==='region' && n.name?.value==='Pop-up blocked by Clear Pop Up');
+    const region=nodes.find(n=>n.role?.value==='region' && n.name?.value===regionName);
     const ids=new Set(region ? [region.nodeId] : []);
     for (let changed=true;changed;) {changed=false;for(const n of nodes) if(ids.has(n.nodeId)) for(const id of n.childIds||[]) if(!ids.has(id)){ids.add(id);changed=true;}}
     return await action(cdp,nodes.filter(n=>ids.has(n.nodeId)));
   } finally {await cdp.detach()}
 }
-async function noticeText(page) {return noticeAX(page,async (_,nodes)=>nodes.map(n=>n.name?.value||'').join(' '))}
+async function noticeText(page, regionName) {return noticeAX(page,async (_,nodes)=>nodes.map(n=>n.name?.value||'').join(' '), regionName)}
 async function clickNotice(page,name) {
+  await page.bringToFront();
   await expect.poll(()=>noticeText(page)).toContain(name);
   await noticeAX(page,async (cdp,nodes)=>{
     const button=nodes.find(n=>n.role?.value==='button' && n.name?.value===name);
+    await cdp.send('DOM.scrollIntoViewIfNeeded', {backendNodeId:button.backendDOMNodeId});
+    // A trusted click must hit the actual control after layout has settled.
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
     const {model}=await cdp.send('DOM.getBoxModel',{backendNodeId:button.backendDOMNodeId});
-    const q=model.border;await page.mouse.click((q[0]+q[4])/2,(q[1]+q[5])/2);
+    const q=model.border, x=(q[0]+q[4])/2, y=(q[1]+q[5])/2;
+    const hit = await cdp.send('DOM.getNodeForLocation', {x:Math.round(x), y:Math.round(y), includeUserAgentShadowDOM:true});
+    expect(hit.backendNodeId).toBe(button.backendDOMNodeId);
+    await page.mouse.click(x,y);
   });
 }
 
@@ -217,7 +234,7 @@ test('first block shows one notice, keep blocked and show again after reload', a
     await notice.screenshot({path:process.env.CLEAR_POPUP_NOTICE_PROOF_PATH || test.info().outputPath('first-popup-notice.png')});
     await clickNotice(env.page,'Keep blocked');await expect(notice).toHaveCount(0);
     await env.page.evaluate(()=>window.open('/target','_blank'));
-    const panel=await env.panel();await expect(panel.locator('#popups')).toHaveText('2');
+    const panel=await env.panel();await expect(panel.locator('#popups')).toHaveText('2 pop-ups blocked');
     await expect(notice).toHaveCount(0);expect((await env.worker.evaluate(()=>chrome.storage.local.get('settings'))).settings.exceptions).toEqual([]);
     await panel.close();await env.page.reload();await env.page.evaluate(()=>window.open('/target','_blank'));await expect(notice).toBeVisible();
     expect(env.errors).toEqual([]);
@@ -274,7 +291,7 @@ test('full-screen backdrop with hidden contents removed after click, interaction
    await expect(env.page.locator('#floating-backdrop')).toBeHidden();
    expect(await env.page.evaluate(()=>getComputedStyle(document.body).overflowY)).toBe('auto');
    await env.page.locator('#dialog').click();await expect(env.page.locator('#consentless')).toBeVisible();
-   const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1');
+   const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('1 overlay hidden');
  } finally {await env.close()}
 });
 
@@ -291,7 +308,7 @@ test('visible dialog under visibility hidden parent preserved after click',async
    };document.body.append(b);
   });
   await env.page.locator('#requested-dialog').click();await expect(env.page.getByRole('dialog')).toBeVisible();
-  const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('0');
+  const panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('0 overlays hidden');
  }finally{await env.close()}
 });
 
@@ -307,15 +324,15 @@ test('initially allowed site can toggle protection without reload, including fra
   panel=await env.panel();await panel.locator('#exception').uncheck();await expect(panel.locator('#status')).toContainText('Saved');
   expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
   expect(await frame.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);
-  await expect(panel.locator('#popups')).toHaveText('2');
+  await expect(panel.locator('#popups')).toHaveText('2 pop-ups blocked');
   await panel.locator('#exception').check();await expect(panel.locator('#status')).toContainText('Saved');
   const opened=env.context.waitForEvent('page');expect(await env.page.evaluate(()=>window.open('/target','_blank')!==null)).toBe(true);await(await opened).close();
   await panel.locator('#exception').uncheck();await expect(panel.locator('#status')).toContainText('Saved');
-  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);await expect(panel.locator('#popups')).toHaveText('3');
+  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);await expect(panel.locator('#popups')).toHaveText('3 pop-ups blocked');
   await panel.locator('#basic').uncheck();await expect(panel.locator('#status')).toContainText('Saved');
   const basicOpen=env.context.waitForEvent('page');expect(await env.page.evaluate(()=>window.open('/target','_blank')!==null)).toBe(true);await(await basicOpen).close();
   await panel.locator('#basic').check();await expect(panel.locator('#status')).toContainText('Saved');
-  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);await expect(panel.locator('#popups')).toHaveText('4');
+  expect(await env.page.evaluate(()=>window.open('/target','_blank')===null)).toBe(true);await expect(panel.locator('#popups')).toHaveText('4 pop-ups blocked');
   expect(await env.page.evaluate(()=>window.liveDocumentToken)).toBe(documentToken);expect(env.errors).toEqual([]);
  }finally{await env.close()}
 });
@@ -334,7 +351,7 @@ test('Shift multi-selection, persistence, single click and Escape',async()=>{
   panel=await env.panel();await panel.locator('#pick').click();
   await env.page.locator('#pick-item-2').click();await expect(env.page.locator('#pick-item-2')).toBeHidden();
   await env.page.locator('#pick-item-3').click();await expect(env.page.locator('#pick-item-3')).toBeVisible();
-  panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('3');
+  panel=await env.panel();await expect(panel.locator('#overlays')).toHaveText('3 overlays hidden');
   expect(env.errors).toEqual([]);
  }finally{await env.close()}
 });
@@ -347,7 +364,7 @@ test('overlay toolbar expires while undo remains available',async()=>{
   await expect(env.page.locator('[data-clear-popup-ui]')).toHaveCount(0,{timeout:7000});
   await expect(env.page.locator('#test-overlay')).toBeHidden();
   const panel=await env.panel();await panel.locator('#undo').click();await expect(env.page.locator('#test-overlay')).toBeVisible();
-  await expect(panel.locator('#overlays')).toHaveText('1');expect(env.errors).toEqual([]);
+  await expect(panel.locator('#overlays')).toHaveText('1 overlay hidden');expect(env.errors).toEqual([]);
  }finally{await env.close()}
 });
 
@@ -366,7 +383,7 @@ test('Clear theme follows OS preference, supports overrides and keeps controls a
     const light = await palette();
     expect(light.scheme).toBe('light'); expect(light.overflow).toBe(false);
     for (const selector of ['.setting-row', '.remember']) expect(await panel.locator(selector).first().evaluate(node => getComputedStyle(node).flexDirection)).toBe('row');
-    expect(await panel.locator('html').getAttribute('lang')).toBe('en');
+    expect(await panel.locator('html').getAttribute('lang')).toBe(await panel.evaluate(() => chrome.i18n.getUILanguage()));
     await expect(panel.getByRole('heading', {name: 'Clear Pop Up'})).toBeVisible();
     if (process.env.CLEAR_THEME_PROOF_DIR) await panel.locator('body').screenshot({path: `${process.env.CLEAR_THEME_PROOF_DIR}/clear-popup-light.png`});
     await panel.emulateMedia({colorScheme: 'dark'});
@@ -387,4 +404,98 @@ test('Clear theme follows OS preference, supports overrides and keeps controls a
     if (process.env.CLEAR_THEME_PROOF_DIR) await panel.locator('body').screenshot({path: `${process.env.CLEAR_THEME_PROOF_DIR}/clear-popup-allowed-dark.png`});
     expect(env.errors).toEqual([]); expect(env.requests).toEqual([]);
   } finally { await env.close(); }
+});
+
+const localeRegistry = JSON.parse(await readFile(new URL('../ui/locales.json', import.meta.url), 'utf8'));
+for (const locale of [...localeRegistry.locales, 'ja', 'pt-PT', 'ar']) {
+  test(`native UI locale ${locale}: complete labels, counters, notices, states and isolated direction`, async () => {
+    const uiLocale = locale.replace('_', '-');
+    const env = await setup(uiLocale);
+    const catalogLocale = localeRegistry.locales.includes(locale) ? locale : 'en';
+    const catalog = JSON.parse(await readFile(new URL(`../src/_locales/${catalogLocale}/messages.json`, import.meta.url), 'utf8'));
+    const message = (key, values) => env.worker.evaluate(({key, values}) => chrome.i18n.getMessage(key, values), {key, values});
+    try {
+      // Read actual native output, rather than assuming navigator.language controls it.
+      expect(await message('tagline')).toBe(catalog.tagline.message);
+      await env.page.evaluate(() => {document.documentElement.lang = 'en'; document.documentElement.dir = 'ltr';});
+      const originalPageLocale = await env.page.evaluate(() => ({lang:document.documentElement.lang, dir:document.documentElement.dir}));
+      let panel = await env.panel();
+      const renderedLocale = await panel.evaluate(() => chrome.i18n.getUILanguage());
+      expect(renderedLocale.toLowerCase()).toMatch(new RegExp(`^${uiLocale.toLowerCase()}(?:-|$)`));
+      await expect(panel.locator('html')).toHaveAttribute('lang', renderedLocale);
+      await expect(panel.locator('html')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+      await expect(panel.getByRole('switch', {name:catalog.globalProtection.message, exact:true})).toBeVisible();
+      await expect(panel.locator('.tagline')).toHaveText(catalog.tagline.message);
+      await expect(panel.locator('#protection-state')).toHaveText(catalog.protectionActive.message);
+      const translations = await panel.evaluate(() => [...document.querySelectorAll('[data-i18n]')].map(node => ({key:node.dataset.i18n, actual:node.textContent, expected:chrome.i18n.getMessage(node.dataset.i18n)})));
+      for (const value of translations) expect(value.actual, value.key).toBe(value.expected);
+      expect(await panel.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      if (process.env.CLEAR_I18N_PROOF_DIR) await panel.locator('body').screenshot({path:`${process.env.CLEAR_I18N_PROOF_DIR}/${locale}-popup.png`});
+      await panel.close();
+      expect(await env.page.evaluate(() => window.open('/target', '_blank') === null)).toBe(true);
+      const region = catalog.noticeRegion.message;
+      await expect.poll(() => noticeText(env.page, region)).toContain(catalog.keepBlocked.message);
+      await expect.poll(() => noticeText(env.page, region)).toContain(await message('noticeBlocked', ['localhost']));
+      await expect(env.page.locator('[data-clear-popup-notice]')).toHaveAttribute('lang', renderedLocale);
+      await expect(env.page.locator('[data-clear-popup-notice]')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+      expect(await env.page.evaluate(() => ({lang:document.documentElement.lang, dir:document.documentElement.dir}))).toEqual(originalPageLocale);
+      await overlay(env.page);
+      await expect(env.page.locator('#test-overlay')).toBeHidden();
+      await expect(env.page.locator('[data-clear-popup-ui]')).toHaveAttribute('lang', renderedLocale);
+      await expect(env.page.locator('[data-clear-popup-ui]')).toHaveAttribute('dir', locale === 'ar' ? 'rtl' : 'ltr');
+      const ax = await env.context.newCDPSession(env.page);
+      try {
+        const {nodes} = await ax.send('Accessibility.getFullAXTree');
+        const names = nodes.map(node => node.name?.value || '');
+        expect(names).toContain(catalog.overlayHidden.message);
+        expect(names).toContain(catalog.restore.message);
+        expect(names).toContain(catalog.closeToolbar.message);
+      } finally {await ax.detach();}
+      if (process.env.CLEAR_I18N_PROOF_DIR) await env.page.locator('[data-clear-popup-notice]').screenshot({path:`${process.env.CLEAR_I18N_PROOF_DIR}/${locale}-notice.png`});
+      panel = await env.panel();
+      await expect(panel.locator('#popups')).toHaveText(await message('popupsBlockedOne', ['1']));
+      await expect(panel.locator('#overlays')).toHaveText(await message('overlaysHiddenOne', ['1']));
+      await panel.locator('#undo').click();
+      await expect(panel.locator('#status')).toHaveText(catalog.elementRestored.message);
+      await panel.locator('#scan').click();
+      await expect(panel.locator('#status')).toHaveText(catalog.scanComplete.message);
+      await panel.locator('#exception').check();
+      await expect(panel.locator('#protection-state')).toHaveText(catalog.protectionAllowed.message);
+      await expect(panel.locator('#status')).toHaveText(catalog.savedApplied.message);
+      await panel.locator('summary').click();
+      await expect(panel.locator('#data-summary')).toHaveText(await message('dataSummary', ['1', '0']));
+      await panel.locator('#erase').click();
+      await expect(panel.locator('#status')).toHaveText(catalog.dataCleared.message);
+      expect(await panel.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+      expect(env.errors).toEqual([]); expect(env.requests).toEqual([]);
+      if (process.env.CLEAR_I18N_PROOF_DIR) await writeFile(`${process.env.CLEAR_I18N_PROOF_DIR}/${locale}-receipt.json`, JSON.stringify({requested:uiLocale, browserUILanguage:env.nativeLocale, rendererUILanguage:renderedLocale, catalog:catalogLocale, direction:locale === 'ar' ? 'rtl' : 'ltr', passed:true, networkRequests:env.requests, hostPageLocalePreserved:true}, null, 2));
+    } finally {await env.close();}
+  });
+}
+
+test('native missing-key fallback and malicious-looking translations remain inert text', async () => {
+  const folder = await mkdtemp(join(tmpdir(), 'clear-i18n-fixture-'));
+  let env;
+  try {
+    await cp(resolve('src'), folder, {recursive:true});
+    const path = join(folder, '_locales/fr/messages.json');
+    const catalog = JSON.parse(await readFile(path, 'utf8'));
+    delete catalog.tagline;
+    const markup = '<img src=x onerror="globalThis.i18nMarkupExecuted=true">';
+    catalog.noticeHeading.message = markup;
+    await writeFile(path, JSON.stringify(catalog));
+    env = await setup('fr', folder);
+    const panel = await env.panel();
+    await expect(panel.locator('.tagline')).toHaveText('Your browsing. Your choice.');
+    await panel.close();
+    await env.page.evaluate(() => window.open('/target', '_blank'));
+    await expect.poll(() => noticeText(env.page, catalog.noticeRegion.message)).toContain(markup);
+    expect(await env.page.evaluate(() => globalThis.i18nMarkupExecuted)).toBeUndefined();
+    const session = await env.context.newCDPSession(env.page);
+    try {
+      const {nodes} = await session.send('Accessibility.getFullAXTree');
+      expect(nodes.some(node => node.role?.value === 'image' && node.name?.value.includes('onerror'))).toBe(false);
+    } finally {await session.detach();}
+    expect(env.errors).toEqual([]); expect(env.requests).toEqual([]);
+  } finally {await env?.close(); await rm(folder, {recursive:true, force:true});}
 });

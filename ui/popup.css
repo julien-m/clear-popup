@@ -38,7 +38,7 @@ small { display: block; font-size: 11px; line-height: 1.5; color: var(--clear-te
 h2 { font-size: 11px; font-weight: 650; text-transform: uppercase; letter-spacing: .7px; color: var(--clear-text-muted); margin: 16px 0 8px; }
 .tools { display: grid; gap: 8px; }
 .tools h2 { margin-bottom: 0; }
-.tools .btn { width: 100%; justify-content: flex-start; min-height: var(--clear-control-h); white-space: normal; height: auto; padding: 8px 12px; text-align: left; }
+.tools .btn { width: 100%; justify-content: flex-start; min-height: var(--clear-control-h); white-space: normal; height: auto; padding: 8px 12px; text-align: start; }
 .btn { cursor: pointer; font-family: var(--clear-font); }
 .btn[data-variant='outline'] { background: var(--clear-surface); }
 .btn:disabled { cursor: default; }
@@ -51,3 +51,6 @@ details p { margin-top: 8px; color: var(--clear-text-muted); line-height: 1.5; }
 #status:empty { display: none; }
 .app-footer { padding: 12px 20px; border-top: 1px solid var(--clear-border); color: var(--clear-text-muted); font-size: 11px; text-align: center; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; } }
+
+.setting-row > span, .remember > span { min-width: 0; overflow-wrap: anywhere; }
+.setting-row > input, .remember > input { flex-shrink: 0; }

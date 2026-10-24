@@ -1,0 +1,8 @@
+{
+  "version": "1.1.1",
+  "defaultLocale": "en",
+  "locales": [
+    "en",
+    "fr"
+  ]
+}

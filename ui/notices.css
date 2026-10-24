@@ -1,5 +1,5 @@
 /* Injected inside closed shadow roots only. No Basecoat runtime on visited pages. */
-:host { all: initial; position: fixed !important; right: 16px !important; z-index: 2147483647 !important; font: 13px/1.45 var(--clear-font) !important; color: var(--clear-text) !important; color-scheme: light dark; }
+:host { all: initial; position: fixed !important; inset-inline-end: 16px !important; z-index: 2147483647 !important; font: 13px/1.45 var(--clear-font) !important; color: var(--clear-text) !important; color-scheme: light dark; }
 :host([data-clear-popup-notice]) { top: 12px !important; width: min(340px, calc(100vw - 32px)) !important; }
 :host([data-clear-popup-ui]) { bottom: 16px !important; max-width: calc(100vw - 32px) !important; }
 * { box-sizing: border-box; }
@@ -14,3 +14,6 @@ button:focus-visible { outline: 2px solid var(--clear-focus); outline-offset: 2p
 button:disabled { opacity: .6; cursor: wait; }
 :host([data-clear-popup-ui]) section { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px; }
 :host([data-clear-popup-ui]) span { font-size: 12px; }
+
+:host { text-align: start; }
+button { max-width: 100%; overflow-wrap: anywhere; }

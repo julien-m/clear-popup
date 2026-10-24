@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+  const {message: t, setLocale} = globalThis.ExtensionI18n;
   let config = {enabled: true, basic: true, advanced: true, exceptions: [], rules: {}};
   let active = false, configReady = globalThis.clearPopupAdvancedStart === true, picking = false, rememberPick = false;
   let lastInteraction = -Infinity, pendingPopups = 0, countTimer = 0;
@@ -27,30 +28,30 @@
     firstPopupNotified = true;
     if (window !== top) { send({type: 'popup-notice'}); return; }
     const blockedHost = source.host || host;
-    popupNotice = document.createElement('div'); popupNotice.setAttribute('data-clear-popup-notice', '');
+    popupNotice = document.createElement('div'); popupNotice.setAttribute('data-clear-popup-notice', ''); setLocale(popupNotice);
     const root = popupNotice.attachShadow({mode: 'closed'});
     const style = document.createElement('style');
     style.textContent = globalThis.clearPopupThemeCSS;
-    const box = document.createElement('section'); box.setAttribute('aria-label', 'Pop-up blocked by Clear Pop Up'); box.setAttribute('role', 'region');
-    const heading = document.createElement('strong'); heading.textContent = 'Clear Pop Up · Pop-up blocked';
-    const text = document.createElement('p'); text.setAttribute('role', 'status'); text.textContent = `A pop-up was blocked on ${blockedHost}.`;
-    const hint = document.createElement('small'); hint.textContent = 'This exception applies only to Clear Pop Up. Chrome and other blockers operate independently. No window will be reopened automatically.';
+    const box = document.createElement('section'); box.setAttribute('aria-label', t('noticeRegion')); box.setAttribute('role', 'region');
+    const heading = document.createElement('strong'); heading.textContent = t('noticeHeading');
+    const text = document.createElement('p'); text.setAttribute('role', 'status'); text.textContent = t('noticeBlocked', [blockedHost]);
+    const hint = document.createElement('small'); hint.textContent = t('noticeHint');
     const actions = document.createElement('div');
-    const allow = document.createElement('button'); allow.textContent = 'Allow this site';
-    const keep = document.createElement('button'); keep.textContent = 'Keep blocked';
+    const allow = document.createElement('button'); allow.textContent = t('allowSite');
+    const keep = document.createElement('button'); keep.textContent = t('keepBlocked');
     keep.addEventListener('click', event => { if (event.isTrusted) dismissPopupNotice(); });
     allow.addEventListener('click', async event => {
       if (!event.isTrusted) return;
       allow.disabled = keep.disabled = true;
       const result = await send({type: 'allow-site', documentId: source.documentId});
-      if (!result?.ok) { text.textContent = 'Could not allow this site. Reload the page and try again.'; allow.disabled = keep.disabled = false; return; }
-      text.textContent = `${result.host} is allowed. Reload the page to try the intended pop-up again.`;
-      hint.textContent = 'You can remove this exception from the Clear Pop Up toolbar icon.';
-      allow.textContent = 'Reload page'; allow.disabled = false;
+      if (!result?.ok) { text.textContent = t('allowFailed'); allow.disabled = keep.disabled = false; return; }
+      text.textContent = t('siteAllowedReload', [result.host]);
+      hint.textContent = t('removeExceptionHint');
+      allow.textContent = t('reloadPage'); allow.disabled = false;
       // Replace the permission handler; reloading remains an explicit second choice.
       const reload = allow.cloneNode(true); allow.replaceWith(reload);
       reload.addEventListener('click', click => { if (click.isTrusted) location.reload(); });
-      keep.textContent = 'Close'; keep.disabled = false;
+      keep.textContent = t('close'); keep.disabled = false;
     });
     actions.append(allow, keep); box.append(heading, text, hint, actions); root.append(style, box);
     (document.documentElement || document).append(popupNotice);
@@ -90,13 +91,13 @@
   function controls() {
     if (toolbar || !document.documentElement) return;
     toolbar = document.createElement('div');
-    toolbar.setAttribute('data-clear-popup-ui', ''); shadow = toolbar.attachShadow({mode: 'closed'});
+    toolbar.setAttribute('data-clear-popup-ui', ''); setLocale(toolbar); shadow = toolbar.attachShadow({mode: 'closed'});
     const style = document.createElement('style');
     style.textContent = globalThis.clearPopupThemeCSS;
-    const section = document.createElement('section'); section.setAttribute('aria-label', 'Clear Pop Up');
-    const label = document.createElement('span'); label.textContent = 'Clear Pop Up · Overlay hidden';
-    const undo = document.createElement('button'); undo.textContent = 'Restore'; undo.addEventListener('click', () => { restoreLast(); });
-    const dismiss = document.createElement('button'); dismiss.textContent = 'Close'; dismiss.setAttribute('aria-label', 'Close toolbar'); dismiss.addEventListener('click', dismissToolbar);
+    const section = document.createElement('section'); section.setAttribute('aria-label', t('extensionName'));
+    const label = document.createElement('span'); label.textContent = t('overlayHidden');
+    const undo = document.createElement('button'); undo.textContent = t('restore'); undo.addEventListener('click', () => { restoreLast(); });
+    const dismiss = document.createElement('button'); dismiss.textContent = t('close'); dismiss.setAttribute('aria-label', t('closeToolbar')); dismiss.addEventListener('click', dismissToolbar);
     toolbar.addEventListener('pointerleave', scheduleToolbarDismiss);
     toolbar.addEventListener('focusout', scheduleToolbarDismiss);
     section.append(label, undo, dismiss); shadow.append(style, section); document.documentElement.append(toolbar);
@@ -216,7 +217,7 @@
     if (message.type === 'undo') reply({ok: restoreLast()});
     if (message.type === 'scan') { scan(true); reply({ok: true}); }
     if (message.type === 'pick') {
-      if (!enabled()) { reply({ok: false, error: 'Protection is off on this site.'}); return; }
+      if (!enabled()) { reply({ok: false, error: t('protectionOffOnSite')}); return; }
       if (picking) stopPick(); picking = true; rememberPick = message.remember === true;
       document.addEventListener('pointerover', hoverPick, true); document.addEventListener('click', clickPick, true); document.addEventListener('keydown', keyPick, true); reply({ok: true});
     }

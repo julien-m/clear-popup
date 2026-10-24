@@ -16,7 +16,8 @@ Copy it unchanged into each independent repository as `ui/clear-theme.css`. Comm
 - Always pair state colors with explicit text. Never show an allowed site as protected.
 - Use the provided light and dark palettes. The default follows `prefers-color-scheme`; set `data-theme="light"` or `data-theme="dark"` to force a mode. The same tokens support shadow-root hosts.
 - Keep shadows restrained, layouts compact and labels readable. Retain visible keyboard focus and respect reduced-motion preferences.
-- All authored interface text, notifications, errors, documentation and test descriptions must be English.
+- Every extension must provide complete English and French interfaces, selected automatically from the browser UI language with English fallback and no manual selector. Read [the i18n integration contract](i18n.md) for implementation and packaging. Keep developer documentation, diagnostics and test descriptions in English.
+- Localize all labels, dynamic messages, notifications and accessibility names. Let translated text wrap without clipping or displacing controls; test both English and French layouts. Change locale/direction only on extension-owned interfaces, never on visited pages.
 
 ## Basecoat integration
 
@@ -33,7 +34,7 @@ The stock Vega pack contains styles for more than the imported structures. Do no
 ## Validation
 
 - Verify active, allowed, disabled, focused and disabled-control states.
-- Check both OS themes and explicit theme overrides, keyboard navigation, overflow and English labels.
+- Check both OS themes and explicit theme overrides, keyboard navigation, overflow, native English/French selection and unsupported-language fallback.
 - Re-run the extension's full functional suite, inspect the installed browser interface and keep permissions unchanged unless a feature requires otherwise.
 - Measure shipped CSS/JS separately from compressed archive sizes. Do not infer RAM usage from gzip sizes.
 

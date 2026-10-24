@@ -1,6 +1,6 @@
 {
   "name": "clear-popup",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "Local pop-up and overlay blocking without data collection",
@@ -8,7 +8,7 @@
   "scripts": {
     "ui": "node scripts/build-ui.mjs",
     "check": "node scripts/build-ui.mjs && node scripts/check.mjs",
-    "test": "node scripts/build-ui.mjs && playwright test",
+    "test": "node scripts/build-ui.mjs && node --test tests/i18n.unit.mjs && playwright test",
     "build": "node scripts/build-ui.mjs && node scripts/build.mjs"
   },
   "devDependencies": {

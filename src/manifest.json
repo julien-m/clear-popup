@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Clear Pop Up",
-  "version": "0.2.0",
-  "description": "Block unsolicited pop-ups and intrusive overlays. Local processing, no tracking or data collection.",
+  "name": "__MSG_extensionName__",
+  "version": "0.3.0",
+  "description": "__MSG_extensionDescription__",
   "minimum_chrome_version": "119",
   "permissions": [
     "storage",
@@ -19,7 +19,7 @@
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Clear Pop Up"
+    "default_title": "__MSG_extensionName__"
   },
   "icons": {
     "16": "icons/icon-16.png",
@@ -36,6 +36,7 @@
         "https://*/*"
       ],
       "js": [
+        "i18n.js",
         "injected-theme.js",
         "content.js"
       ],
@@ -43,5 +44,6 @@
       "all_frames": true,
       "match_origin_as_fallback": true
     }
-  ]
+  ],
+  "default_locale": "en"
 }

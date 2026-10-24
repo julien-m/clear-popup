@@ -29,6 +29,14 @@ Clear Pop Up uses Basecoat 1.1.0 with the shared Clear 1.0.0 light/dark theme. I
 
 Read [the design system](ui/design-system.md) and [theme tokens](ui/clear-theme.css). This repository contains an independent copy of the parent extensions theme, so it builds without a sibling checkout. Edit [the popup source stylesheet](ui/popup.css) or [isolated notification styles](ui/notices.css), then run `bun run ui`. Basecoat supplies control styles; this version uses native controls and existing extension actions, so no Basecoat JavaScript controllers are shipped. Injected notifications use a small isolated theme, not the full Basecoat stylesheet.
 
+## Languages
+
+The interface follows the browser UI language automatically. Complete catalogs are included for English and French (`en`, `fr`). Unsupported languages fall back to English through native WebExtension i18n. There is no manual language selector or stored language setting. Only English and French are supported.
+
+Popup labels, accessibility names, counters, statuses and injected notices are localized. Developer documentation, diagnostics and test descriptions remain English. Read [the i18n integration guide](ui/i18n.md) and [active locale registry](ui/locales.json) before adding strings. The runtime and validator are independent MIT copies of shared module 1.1.1; this consumer deliberately selects only two languages. No uBlock source or translations are included.
+
+Tests explicitly select and verify native English/French Chromium UI locales, unsupported fallback and RTL-owned hosts. On macOS, the test launcher passes Cocoa language arguments to each disposable process; it never changes system or personal-browser language preferences. Browser automation's navigator locale alone does not establish native extension language. Personal Chrome verification is separate.
+
 ## Permissions and data
 
 - `storage`: local settings and saved selectors; temporary counters in session storage. No Google synchronization.
@@ -55,7 +63,7 @@ bun run test
 bun run build
 ```
 
-Tests load the real MV3 extension in disposable Chromium profiles with loopback-only fixture pages; they do not use a personal Chrome profile. The build creates the loadable folder, versioned ZIP and SHA256 in `dist/`. Generated files in `src/` are committed for direct installation.
+Tests load the real MV3 extension in disposable Chromium profiles with loopback-only fixture pages; they do not use a personal Chrome profile. The build creates the loadable folder, versioned ZIP and SHA256 in `dist/`. Generated files in `src/` are tracked for direct installation. Catalog validation runs before UI compilation and packaging; nested `_locales` files are included in both unpacked and ZIP output.
 
 ## License and provenance
 

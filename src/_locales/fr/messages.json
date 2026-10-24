@@ -1,0 +1,280 @@
+{
+  "extensionName": {
+    "message": "Clear Pop Up",
+    "description": "Product name."
+  },
+  "extensionDescription": {
+    "message": "Bloquez les pop-up non sollicités et les overlays intrusifs. Traitement local, sans suivi ni collecte.",
+    "description": "Extension manifest description."
+  },
+  "tagline": {
+    "message": "Votre navigation. Vos choix.",
+    "description": "Popup tagline."
+  },
+  "loading": {
+    "message": "Chargement…",
+    "description": "Initial loading state."
+  },
+  "unsupportedPage": {
+    "message": "Page non prise en charge",
+    "description": "Shown for internal or restricted pages."
+  },
+  "protectionAllowed": {
+    "message": "Autorisé sur ce site",
+    "description": "Protection disabled by an exact-host exception."
+  },
+  "protectionActive": {
+    "message": "Protection active",
+    "description": "Protection is enabled on the current site."
+  },
+  "protectionOff": {
+    "message": "Protection désactivée",
+    "description": "Protection is disabled."
+  },
+  "popupsBlockedOne": {
+    "message": "$COUNT$ pop-up bloqué",
+    "description": "Counter for exactly one blocked pop-up.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "popupsBlockedMany": {
+    "message": "$COUNT$ pop-up bloqués",
+    "description": "Counter for zero or more than one blocked pop-up.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "overlaysHiddenOne": {
+    "message": "$COUNT$ overlay masqué",
+    "description": "Counter for exactly one hidden overlay.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "overlaysHiddenMany": {
+    "message": "$COUNT$ overlays masqués",
+    "description": "Counter for zero or more than one hidden overlay.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "sinceTabLoaded": {
+    "message": "Depuis le chargement de cet onglet",
+    "description": "Scope of temporary counters."
+  },
+  "settingsNote": {
+    "message": "Les réglages généraux s’appliquent sauf si ce site est autorisé.",
+    "description": "Explains exception precedence."
+  },
+  "protectionSettings": {
+    "message": "Réglages de protection",
+    "description": "Accessible label for the settings section."
+  },
+  "globalProtection": {
+    "message": "Protection globale",
+    "description": "Main protection switch."
+  },
+  "basicPopups": {
+    "message": "Pop-up classiques",
+    "description": "Basic pop-up switch label."
+  },
+  "basicHelp": {
+    "message": "Bloquer les fenêtres et onglets non sollicités",
+    "description": "Basic switch description."
+  },
+  "automaticOverlays": {
+    "message": "Overlays automatiques",
+    "description": "Overlay switch label."
+  },
+  "overlaysHelp": {
+    "message": "Masquer les couches intrusives détectées",
+    "description": "Overlay switch description."
+  },
+  "allowSite": {
+    "message": "Autoriser ce site",
+    "description": "Site exception switch and notification action."
+  },
+  "exactHostname": {
+    "message": "Exception pour cet hôte exact",
+    "description": "Explains hostname-only exceptions."
+  },
+  "onThisPage": {
+    "message": "Sur cette page",
+    "description": "Page actions section title."
+  },
+  "scanNow": {
+    "message": "Rechercher un overlay maintenant",
+    "description": "Manual scan action."
+  },
+  "pickElements": {
+    "message": "Choisir les éléments à masquer",
+    "description": "Start the element picker."
+  },
+  "rememberSelections": {
+    "message": "Mémoriser les choix pour ce site",
+    "description": "Optional persistence of selected CSS selectors."
+  },
+  "restoreLast": {
+    "message": "Restaurer le dernier élément",
+    "description": "Restore action in popup."
+  },
+  "pickerHelp": {
+    "message": "Maj + clic pour poursuivre la sélection. Échap pour quitter.",
+    "description": "Keyboard instructions for the element picker."
+  },
+  "restoreHelp": {
+    "message": "Les éléments masqués peuvent toujours être restaurés.",
+    "description": "Reversibility notice."
+  },
+  "localData": {
+    "message": "Mes données locales",
+    "description": "Expandable privacy section."
+  },
+  "dataSummary": {
+    "message": "Sites autorisés : $EXCEPTIONS$ · Sélections mémorisées : $SELECTIONS$",
+    "description": "Counts of stored exceptions and saved selectors.",
+    "placeholders": {
+      "exceptions": {
+        "content": "$1",
+        "example": "27"
+      },
+      "selections": {
+        "content": "$2",
+        "example": "27"
+      }
+    }
+  },
+  "privacySummary": {
+    "message": "Seuls les réglages, les sites autorisés et les sélecteurs mémorisés sont conservés. Aucun historique, contenu de page ou identifiant de suivi.",
+    "description": "Local data explanation."
+  },
+  "clearData": {
+    "message": "Effacer les exceptions et les choix mémorisés",
+    "description": "Erase stored user choices."
+  },
+  "footer": {
+    "message": "100 % local · Aucun serveur · Code ouvert",
+    "description": "Privacy footer."
+  },
+  "actionUnavailable": {
+    "message": "Action indisponible. Rechargez la page et réessayez.",
+    "description": "Fallback action error."
+  },
+  "savedApplied": {
+    "message": "Enregistré et appliqué aux pages ouvertes.",
+    "description": "Successful settings update."
+  },
+  "savedReloadOne": {
+    "message": "Enregistré. $COUNT$ onglet n’a pas pu être actualisé. Rechargez-le.",
+    "description": "One tab needs a manual reload.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "savedReloadMany": {
+    "message": "Enregistré. $COUNT$ onglets n’ont pas pu être actualisés. Rechargez-les.",
+    "description": "Several tabs need a manual reload.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "elementRestored": {
+    "message": "Élément restauré sur cette page.",
+    "description": "Undo success."
+  },
+  "scanComplete": {
+    "message": "Recherche terminée.",
+    "description": "Manual scan success."
+  },
+  "dataCleared": {
+    "message": "Exceptions et choix mémorisés effacés.",
+    "description": "Erase success."
+  },
+  "noticeRegion": {
+    "message": "Pop-up bloqué par Clear Pop Up",
+    "description": "Accessible region name for the first-block notice."
+  },
+  "noticeHeading": {
+    "message": "Clear Pop Up · Pop-up bloqué",
+    "description": "First-block notice heading."
+  },
+  "noticeBlocked": {
+    "message": "Un pop-up a été bloqué sur $HOST$.",
+    "description": "Blocked source hostname, treated as text.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "noticeHint": {
+    "message": "Cette exception concerne uniquement Clear Pop Up. Chrome et les autres bloqueurs restent indépendants. Aucune fenêtre ne sera rouverte automatiquement.",
+    "description": "Explains the scope and behavior of the allow action."
+  },
+  "keepBlocked": {
+    "message": "Garder bloqué",
+    "description": "Dismiss without allowing the source site."
+  },
+  "allowFailed": {
+    "message": "Impossible d’autoriser ce site. Rechargez la page et réessayez.",
+    "description": "Allow-site failure."
+  },
+  "siteAllowedReload": {
+    "message": "$HOST$ est autorisé. Rechargez la page pour réessayer le pop-up souhaité.",
+    "description": "Allow-site success with the exact hostname.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "removeExceptionHint": {
+    "message": "Vous pouvez retirer cette exception depuis l’icône Clear Pop Up.",
+    "description": "Explains how to reverse the exception."
+  },
+  "reloadPage": {
+    "message": "Recharger la page",
+    "description": "Explicit reload action after allowing."
+  },
+  "close": {
+    "message": "Fermer",
+    "description": "Dismiss action."
+  },
+  "overlayHidden": {
+    "message": "Clear Pop Up · Overlay masqué",
+    "description": "Temporary overlay toolbar message."
+  },
+  "restore": {
+    "message": "Restaurer",
+    "description": "Overlay toolbar undo action."
+  },
+  "closeToolbar": {
+    "message": "Fermer la barre",
+    "description": "Accessible toolbar dismiss name."
+  },
+  "protectionOffOnSite": {
+    "message": "La protection est désactivée sur ce site.",
+    "description": "Picker cannot start on an unprotected site."
+  }
+}

@@ -1,0 +1,280 @@
+{
+  "extensionName": {
+    "message": "Clear Pop Up",
+    "description": "Product name."
+  },
+  "extensionDescription": {
+    "message": "Block unsolicited pop-ups and intrusive overlays. Local processing, no tracking or data collection.",
+    "description": "Extension manifest description."
+  },
+  "tagline": {
+    "message": "Your browsing. Your choice.",
+    "description": "Popup tagline."
+  },
+  "loading": {
+    "message": "Loading…",
+    "description": "Initial loading state."
+  },
+  "unsupportedPage": {
+    "message": "Unsupported page",
+    "description": "Shown for internal or restricted pages."
+  },
+  "protectionAllowed": {
+    "message": "Allowed on this site",
+    "description": "Protection disabled by an exact-host exception."
+  },
+  "protectionActive": {
+    "message": "Protection active",
+    "description": "Protection is enabled on the current site."
+  },
+  "protectionOff": {
+    "message": "Protection off",
+    "description": "Protection is disabled."
+  },
+  "popupsBlockedOne": {
+    "message": "$COUNT$ pop-up blocked",
+    "description": "Counter for exactly one blocked pop-up.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "popupsBlockedMany": {
+    "message": "$COUNT$ pop-ups blocked",
+    "description": "Counter for zero or more than one blocked pop-up.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "overlaysHiddenOne": {
+    "message": "$COUNT$ overlay hidden",
+    "description": "Counter for exactly one hidden overlay.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "overlaysHiddenMany": {
+    "message": "$COUNT$ overlays hidden",
+    "description": "Counter for zero or more than one hidden overlay.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "sinceTabLoaded": {
+    "message": "Since this tab loaded",
+    "description": "Scope of temporary counters."
+  },
+  "settingsNote": {
+    "message": "Global settings apply unless this site has an exception.",
+    "description": "Explains exception precedence."
+  },
+  "protectionSettings": {
+    "message": "Protection settings",
+    "description": "Accessible label for the settings section."
+  },
+  "globalProtection": {
+    "message": "Global protection",
+    "description": "Main protection switch."
+  },
+  "basicPopups": {
+    "message": "Basic pop-ups",
+    "description": "Basic pop-up switch label."
+  },
+  "basicHelp": {
+    "message": "Block unsolicited windows and tabs",
+    "description": "Basic switch description."
+  },
+  "automaticOverlays": {
+    "message": "Automatic overlays",
+    "description": "Overlay switch label."
+  },
+  "overlaysHelp": {
+    "message": "Hide detected intrusive layers",
+    "description": "Overlay switch description."
+  },
+  "allowSite": {
+    "message": "Allow this site",
+    "description": "Site exception switch and notification action."
+  },
+  "exactHostname": {
+    "message": "Exception for this exact hostname",
+    "description": "Explains hostname-only exceptions."
+  },
+  "onThisPage": {
+    "message": "On this page",
+    "description": "Page actions section title."
+  },
+  "scanNow": {
+    "message": "Find an overlay now",
+    "description": "Manual scan action."
+  },
+  "pickElements": {
+    "message": "Choose elements to hide",
+    "description": "Start the element picker."
+  },
+  "rememberSelections": {
+    "message": "Remember selections for this site",
+    "description": "Optional persistence of selected CSS selectors."
+  },
+  "restoreLast": {
+    "message": "Restore the last element",
+    "description": "Restore action in popup."
+  },
+  "pickerHelp": {
+    "message": "Shift + click to keep selecting. Esc to exit.",
+    "description": "Keyboard instructions for the element picker."
+  },
+  "restoreHelp": {
+    "message": "Hidden elements can always be restored.",
+    "description": "Reversibility notice."
+  },
+  "localData": {
+    "message": "My local data",
+    "description": "Expandable privacy section."
+  },
+  "dataSummary": {
+    "message": "Allowed sites: $EXCEPTIONS$ · Saved selections: $SELECTIONS$",
+    "description": "Counts of stored exceptions and saved selectors.",
+    "placeholders": {
+      "exceptions": {
+        "content": "$1",
+        "example": "27"
+      },
+      "selections": {
+        "content": "$2",
+        "example": "27"
+      }
+    }
+  },
+  "privacySummary": {
+    "message": "Only settings, site exceptions and saved selectors are stored. No browsing history, page content or tracking identifiers.",
+    "description": "Local data explanation."
+  },
+  "clearData": {
+    "message": "Clear exceptions and saved selections",
+    "description": "Erase stored user choices."
+  },
+  "footer": {
+    "message": "100% local · No servers · Open source",
+    "description": "Privacy footer."
+  },
+  "actionUnavailable": {
+    "message": "Action unavailable. Reload the page and try again.",
+    "description": "Fallback action error."
+  },
+  "savedApplied": {
+    "message": "Saved and applied to open pages.",
+    "description": "Successful settings update."
+  },
+  "savedReloadOne": {
+    "message": "Saved. $COUNT$ tab could not be updated. Reload that tab.",
+    "description": "One tab needs a manual reload.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "savedReloadMany": {
+    "message": "Saved. $COUNT$ tabs could not be updated. Reload those tabs.",
+    "description": "Several tabs need a manual reload.",
+    "placeholders": {
+      "count": {
+        "content": "$1",
+        "example": "27"
+      }
+    }
+  },
+  "elementRestored": {
+    "message": "Element restored on this page.",
+    "description": "Undo success."
+  },
+  "scanComplete": {
+    "message": "Scan complete.",
+    "description": "Manual scan success."
+  },
+  "dataCleared": {
+    "message": "Exceptions and saved selections cleared.",
+    "description": "Erase success."
+  },
+  "noticeRegion": {
+    "message": "Pop-up blocked by Clear Pop Up",
+    "description": "Accessible region name for the first-block notice."
+  },
+  "noticeHeading": {
+    "message": "Clear Pop Up · Pop-up blocked",
+    "description": "First-block notice heading."
+  },
+  "noticeBlocked": {
+    "message": "A pop-up was blocked on $HOST$.",
+    "description": "Blocked source hostname, treated as text.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "noticeHint": {
+    "message": "This exception applies only to Clear Pop Up. Chrome and other blockers operate independently. No window will be reopened automatically.",
+    "description": "Explains the scope and behavior of the allow action."
+  },
+  "keepBlocked": {
+    "message": "Keep blocked",
+    "description": "Dismiss without allowing the source site."
+  },
+  "allowFailed": {
+    "message": "Could not allow this site. Reload the page and try again.",
+    "description": "Allow-site failure."
+  },
+  "siteAllowedReload": {
+    "message": "$HOST$ is allowed. Reload the page to try the intended pop-up again.",
+    "description": "Allow-site success with the exact hostname.",
+    "placeholders": {
+      "host": {
+        "content": "$1",
+        "example": "example.com"
+      }
+    }
+  },
+  "removeExceptionHint": {
+    "message": "You can remove this exception from the Clear Pop Up toolbar icon.",
+    "description": "Explains how to reverse the exception."
+  },
+  "reloadPage": {
+    "message": "Reload page",
+    "description": "Explicit reload action after allowing."
+  },
+  "close": {
+    "message": "Close",
+    "description": "Dismiss action."
+  },
+  "overlayHidden": {
+    "message": "Clear Pop Up · Overlay hidden",
+    "description": "Temporary overlay toolbar message."
+  },
+  "restore": {
+    "message": "Restore",
+    "description": "Overlay toolbar undo action."
+  },
+  "closeToolbar": {
+    "message": "Close toolbar",
+    "description": "Accessible toolbar dismiss name."
+  },
+  "protectionOffOnSite": {
+    "message": "Protection is off on this site.",
+    "description": "Picker cannot start on an unprotected site."
+  }
+}
